@@ -119,7 +119,7 @@ OPENAI_API_KEY=...
 
 ## 👩‍💻 Developed By
 
-** Team QuantumRebels**  
+**Team QuantumRebels**  
 Made With 💙 , Made For You so that u dont stay Unplaced anymore !! LOL , ALL THE BEST .
 
 
