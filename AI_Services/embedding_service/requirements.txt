@@ -1,0 +1,23 @@
+# Core Dependencies
+fastapi
+uvicorn[standard]
+sentence-transformers
+torch
+faiss-cpu
+nltk
+numpy
+pydantic
+requests
+
+# Test Dependencies
+pytest
+pytest-cov
+pytest-asyncio
+httpx
+python-multipart
+
+# Development Tools (optional)
+black
+isort
+mypy
+flake8
