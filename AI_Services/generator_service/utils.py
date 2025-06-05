@@ -29,10 +29,18 @@ def extract_keywords(text: str) -> Dict[str, List[str]]:
     # Convert text to lowercase for case-insensitive matching
     text_lower = text.lower()
     
-    # Iterate through predefined skills and match with word boundaries
+    # Iterate through predefined skills
     for skill in PREDEFINED_SKILLS:
-        # Use word boundaries to avoid partial matches
-        pattern = r'\b' + re.escape(skill.lower()) + r'\b'
+        skill_lower = skill.lower()
+        escaped_skill_lower = re.escape(skill_lower)
+        
+        # Pattern to match the skill ensuring it's not part of a larger alphanumeric word
+        # and correctly handling skills with special characters.
+        # Looks for the skill either at the start (^) or preceded by a non-alphanumeric character (\W).
+        # Looks for the skill either at the end ($) or followed by a non-alphanumeric character (\W).
+        # The skill itself is captured. Using lookarounds to avoid consuming boundary characters.
+        pattern = r'(?:^|(?<=\W))' + escaped_skill_lower + r'(?=\W|$)'
+        
         if re.search(pattern, text_lower):
             found_skills.append(skill)
     
@@ -41,7 +49,7 @@ def extract_keywords(text: str) -> Dict[str, List[str]]:
         "preferred": []  # Empty for now as specified
     }
 
-def build_rag_prompt(chunks: List[Dict], keywords: Dict[str, List[str]]) -> str:
+def build_rag_prompt(job_description: str, chunks: List[Dict], keywords: Dict[str, List[str]]) -> str:
     """
     Build RAG prompt using chunks and keywords.
     
@@ -61,4 +69,4 @@ def build_rag_prompt(chunks: List[Dict], keywords: Dict[str, List[str]]) -> str:
             "text": chunk.get("text", "")
         })
     
-    return render_rag_prompt(minimal_chunks, keywords)
+    return render_rag_prompt(job_description=job_description, chunks=minimal_chunks, keywords=keywords)

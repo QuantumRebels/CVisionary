@@ -4,3 +4,10 @@ httpx
 pydantic
 jinja2
 numpy
+
+# Testing
+pytest
+pytest-asyncio
+pytest-cov
+httpx
+pytest-mock

@@ -36,8 +36,11 @@ async def generate_resume(user_id: str, req: GenerateRequest):
                     detail="Embedding service failure"
                 )
             
-            embed_data = embed_response.json()
-            if "embedding" not in embed_data:
+            try:
+                embed_data = embed_response.json()
+                if not isinstance(embed_data, dict) or "embedding" not in embed_data or not embed_data["embedding"]:
+                    raise ValueError("Invalid or missing embedding in response")
+            except (ValueError, KeyError) as e:
                 raise HTTPException(
                     status_code=status.HTTP_502_BAD_GATEWAY,
                     detail="Embedding service failure"
@@ -65,7 +68,7 @@ async def generate_resume(user_id: str, req: GenerateRequest):
             keywords = extract_keywords(req.job_description)
             
             # 5. Build RAG prompt
-            prompt = build_rag_prompt(chunks, keywords)
+            prompt = build_rag_prompt(req.job_description, chunks, keywords)
             
             # 6. Call LLM
             bullets = await generate_bullets(prompt)
@@ -80,6 +83,9 @@ async def generate_resume(user_id: str, req: GenerateRequest):
             # 8. Return response
             return GenerateResponse(bullets=bullets, raw_prompt=prompt)
             
+    except HTTPException:
+        # Re-raise HTTPException as is
+        raise
     except httpx.RequestError as e:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
