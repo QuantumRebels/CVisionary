@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose  from "mongoose";
 
 // Schema for connecting social accounts to the user
 const SocialsConnectSchema = new mongoose.Schema({
@@ -47,4 +47,6 @@ const SocialsConnectSchema = new mongoose.Schema({
    {timestamps: true} // Automatically manage createdAt and updatedAt fields
 );
 
-module.exports = mongoose.model("Socials_Connect", SocialsConnectSchema);
+const SocialsConnect = mongoose.model("Socials_Connect", SocialsConnectSchema);
+
+export default SocialsConnect;
