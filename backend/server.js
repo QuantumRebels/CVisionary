@@ -1,16 +1,21 @@
-require("dotenv").config() ;
+import dotenv from "dotenv";
+import express from "express";
 
-const express = require("express");
+import connectToDB from "./db/db.js";
+import authRoutes from "./routes/routes.js";
 
-const connectToDB = require("./db/db")
+// Load environment variables
+dotenv.config();
 
 const app = express();
 app.use(express.json());
-const PORT = process.env.PORT ;
+
+const PORT = process.env.PORT;
 
 connectToDB();
+app.use("/auth", authRoutes)
 
-
-app.listen(PORT , () => {
+app.listen(PORT, () => {
   console.log(`Server is running successfully on ${PORT}`);
-})
+});
+
