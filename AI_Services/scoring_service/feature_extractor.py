@@ -78,11 +78,17 @@ def extract_required_keywords(job_description: str) -> List[str]:
             
             # Use word boundaries to avoid partial matches
             # Handle skills with special characters (like C++, C#)
-            if skill_lower in ["c++", "c#"]:
-                if skill_lower in jd_lower:
+            if skill_lower in ["c++", "c#"]: # Keep special handling for c++/c#
+                if skill_lower in jd_lower: # Simple substring check for these
                     found_skills.append(skill)
-            else:
-                # Use regex with word boundaries for better matching
+            elif ' ' in skill_lower: # Handle multi-word skills
+                # Build a regex that matches whole words separated by spaces
+                # e.g., "rest api" -> r'\brest\b\s+\bapi\b'
+                parts = [re.escape(part) for part in skill_lower.split(' ')]
+                pattern = r'\b' + r'\b\s+\b'.join(parts) + r'\b'
+                if re.search(pattern, jd_lower):
+                    found_skills.append(skill)
+            else: # Single-word skills
                 pattern = r'\b' + re.escape(skill_lower) + r'\b'
                 if re.search(pattern, jd_lower):
                     found_skills.append(skill)

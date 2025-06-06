@@ -182,11 +182,16 @@ class TestModelInference:
         """Test match score with NaN values"""
         model_inference = ModelInference()
         
-        embedding1 = np.full(384, np.nan, dtype=np.float32)
-        embedding2 = np.random.rand(384).astype(np.float32)
+        embedding1_nan = np.full(384, np.nan, dtype=np.float32)
+        embedding2_finite = np.random.rand(384).astype(np.float32)
         
-        with pytest.raises(Exception):
-            model_inference.compute_match_score(embedding1, embedding2)
+        with pytest.raises(ValueError, match="Input embeddings must be finite numbers."):
+            model_inference.compute_match_score(embedding1_nan, embedding2_finite)
+
+        embedding1_finite = np.random.rand(384).astype(np.float32)
+        embedding2_nan = np.full(384, np.nan, dtype=np.float32)
+        with pytest.raises(ValueError, match="Input embeddings must be finite numbers."):
+            model_inference.compute_match_score(embedding1_finite, embedding2_nan)
     
     def test_sigmoid_function(self):
         """Test the sigmoid function"""

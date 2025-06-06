@@ -98,7 +98,7 @@ class TestExtractRequiredKeywords:
         - Cloud experience with AWS (EC2, S3, Lambda)
         - Containerization with Docker and Kubernetes
         - Version control with Git
-        - Experience with REST APIs and GraphQL
+        - Experience with REST API and GraphQL
         - Agile/Scrum methodologies
         
         Nice to have:

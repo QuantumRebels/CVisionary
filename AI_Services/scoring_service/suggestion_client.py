@@ -148,31 +148,39 @@ Keep each suggestion under 20 words and focus on actionable advice."""
         
         try:
             suggestions = []
-            
-            # Split by lines and look for bullet points
             lines = suggestions_text.strip().split('\n')
-            
+
             for line in lines:
                 line = line.strip()
                 
-                # Look for bullet points (•, -, *, numbers)
-                if line and (line.startswith('•') or line.startswith('-') or 
-                           line.startswith('*') or re.match(r'^\d+\.', line)):
-                    # Clean up the bullet point
-                    suggestion = re.sub(r'^[•\-\*\d\.]\s*', '', line).strip()
-                    
-                    if suggestion and len(suggestion.split()) <= 25:  # Allow slight flexibility
-                        suggestions.append(suggestion)
-            
-            # If no bullet points found, try to split by periods or other separators
-            if not suggestions:
-                # Try splitting by sentences
-                sentences = re.split(r'[.!?]\s+', suggestions_text)
-                for sentence in sentences:
+                if not line:
+                    continue
+
+                suggestion_text = None
+                if line.startswith('•') or line.startswith('-') or line.startswith('*'):
+                    suggestion_text = re.sub(r'^[•\-\*]\s*', '', line).strip()
+                elif re.match(r'^\d+\.', line):
+                    suggestion_text = re.sub(r'^\d+\.\s*', '', line).strip() # More specific for numbers
+                
+                if suggestion_text and len(suggestion_text.split()) <= 25:
+                    if suggestion_text not in suggestions: # Avoid duplicates from multiple lines
+                        suggestions.append(suggestion_text)
+        
+            # Fallback: if no bullet points were effectively processed and the original text wasn't just empty lines
+            if not suggestions and suggestions_text.strip():
+                # Split after punctuation, keeping it, then strip it if it's at the very end.
+                raw_sentences = re.split(r'(?<=[.!?])\s+', suggestions_text.strip())
+                
+                for sentence in raw_sentences:
                     sentence = sentence.strip()
+                    # Remove common sentence-ending punctuation if it's the very last char of the segment
+                    if sentence.endswith(('.', '!', '?')):
+                        sentence = sentence[:-1].strip()
+
                     if sentence and len(sentence.split()) <= 25:
-                        suggestions.append(sentence)
-            
+                        if sentence not in suggestions: 
+                            suggestions.append(sentence)
+        
             return suggestions
             
         except Exception as e:

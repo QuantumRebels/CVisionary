@@ -1,10 +1,10 @@
 import pytest
 import os
+import logging
 from unittest.mock import patch, AsyncMock, MagicMock
+import httpx
 from ..suggestion_client import SuggestionClient, logger as suggestion_logger # Adjusted import
 
-# Mark all tests in this module as asyncio
-pytestmark = pytest.mark.asyncio
 
 @pytest.fixture
 def client_no_env_vars(monkeypatch):
@@ -26,9 +26,21 @@ def client_with_all_vars(monkeypatch):
 
 class TestSuggestionClientInit:
     def test_init_no_api_key(self, client_no_env_vars, caplog):
-        assert client_no_env_vars.api_key is None
-        assert client_no_env_vars.api_url == "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
-        assert "GEMINI_API_KEY not found in environment variables" in caplog.text
+        with caplog.at_level(logging.WARNING):
+            # Re-initialize the client to capture the log message
+            client = SuggestionClient()
+            
+            assert client.api_key is None
+            assert client.api_url == "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+            
+            # Check that the warning was logged
+            assert len(caplog.records) > 0, "No log records captured"
+            assert any(
+                record.levelname == "WARNING" and 
+                "GEMINI_API_KEY not found in environment variables" in record.message and
+                record.name == "scoring_service.suggestion_client"
+                for record in caplog.records
+            ), f"Expected log message not found in records: {caplog.records}"
 
     def test_init_with_api_key(self, client_with_api_key):
         assert client_with_api_key.api_key == "test_api_key"
@@ -104,18 +116,20 @@ class TestSuggestionClientParseSuggestions:
             assert "Error parsing suggestions: Regex boom!" in caplog.text
 
 
+@pytest.mark.asyncio
 class TestSuggestionClientCallGeminiAPI:
     @patch('httpx.AsyncClient.post')
     async def test_call_gemini_api_success(self, mock_post, client_with_api_key):
-        mock_response = MagicMock()
+        mock_response = MagicMock(spec=httpx.Response)
         mock_response.status_code = 200
-        mock_response.json.return_value = {
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json = MagicMock(return_value={
             "candidates": [{
                 "content": {
                     "parts": [{"text": "Generated text"}]
                 }
             }]
-        }
+        })
         mock_post.return_value = mock_response
 
         result = await client_with_api_key._call_gemini_api("Test prompt")
@@ -146,9 +160,10 @@ class TestSuggestionClientCallGeminiAPI:
     
     @patch('httpx.AsyncClient.post')
     async def test_call_gemini_api_no_candidates(self, mock_post, client_with_api_key, caplog):
-        mock_response = MagicMock()
+        mock_response = MagicMock(spec=httpx.Response)
         mock_response.status_code = 200
-        mock_response.json.return_value = {"candidates": []} # No candidates
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json = MagicMock(return_value={"candidates": []}) # No candidates
         mock_post.return_value = mock_response
 
         result = await client_with_api_key._call_gemini_api("Test prompt")
@@ -157,22 +172,32 @@ class TestSuggestionClientCallGeminiAPI:
 
     @patch('httpx.AsyncClient.post')
     async def test_call_gemini_api_no_content_parts(self, mock_post, client_with_api_key, caplog):
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        # Simulate various missing parts of the response
-        mock_response.json.side_effect = [
-            {"candidates": [{"content": {"parts": []}}]}, # No parts
-            {"candidates": [{"content": {}}]}, # No content key
-            {"candidates": [{}]} # No content in candidate
-        ]
+        # Create individual mock responses for each call in the loop
+        mock_response1 = MagicMock(spec=httpx.Response)
+        mock_response1.status_code = 200
+        mock_response1.raise_for_status = MagicMock()
+        mock_response1.json = MagicMock(return_value={"candidates": [{"content": {"parts": []}}]}) # No parts
+
+        mock_response2 = MagicMock(spec=httpx.Response)
+        mock_response2.status_code = 200
+        mock_response2.raise_for_status = MagicMock()
+        mock_response2.json = MagicMock(return_value={"candidates": [{"content": {}}]}) # No content key
+
+        mock_response3 = MagicMock(spec=httpx.Response)
+        mock_response3.status_code = 200
+        mock_response3.raise_for_status = MagicMock()
+        mock_response3.json = MagicMock(return_value={"candidates": [{}]}) # No content in candidate
+
+        mock_post.side_effect = [mock_response1, mock_response2, mock_response3]
         
-        for _ in range(3):
+        for i in range(3):
             result = await client_with_api_key._call_gemini_api("Test prompt")
             assert result == ""
             assert "No valid response from Gemini API" in caplog.text
         assert mock_post.call_count == 3
 
 
+@pytest.mark.asyncio
 class TestSuggestionClientGenerateSuggestions:
     async def test_generate_suggestions_no_api_key(self, client_no_env_vars, caplog):
         suggestions = await client_no_env_vars.generate_suggestions(["Python"])

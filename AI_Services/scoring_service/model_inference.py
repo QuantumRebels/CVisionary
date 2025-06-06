@@ -63,18 +63,30 @@ class ModelInference:
             Match score between 0 and 1 (sigmoid of cosine similarity)
         """
         try:
+            if not np.all(np.isfinite(jd_embedding)) or \
+               not np.all(np.isfinite(resume_embedding)):
+                logger.error("Input embeddings contain NaN or Inf values.")
+                raise ValueError("Input embeddings must be finite numbers.")
+
             # Compute cosine similarity (dot product since vectors are normalized)
             cosine_similarity = np.dot(jd_embedding, resume_embedding)
+
+            if not np.isfinite(cosine_similarity):
+                logger.error(f"Cosine similarity is NaN or Inf: {cosine_similarity}")
+                raise ValueError("Cosine similarity calculation resulted in NaN or Inf.")
             
             # Apply sigmoid function to get score in [0, 1]
             # Using a steeper sigmoid with scaling factor
             match_score = self._sigmoid(cosine_similarity * 5.0)
             
             return float(match_score)
-            
+
+        except ValueError as ve: # Re-raise ValueError explicitly
+            logger.error(f"ValueError in compute_match_score: {str(ve)}")
+            raise ve
         except Exception as e:
             logger.error(f"Failed to compute match score: {str(e)}")
-            raise e
+            raise RuntimeError(f"An unexpected error occurred during match score computation: {str(e)}") from e
     
     @staticmethod
     def _sigmoid(x: float) -> float:
