@@ -4,7 +4,7 @@ import express from "express";
 import connectToDB from "./db/db.js";
 import authRoutes from "./routes/routes.js";
 
-// Load environment variables
+
 dotenv.config();
 
 const app = express();

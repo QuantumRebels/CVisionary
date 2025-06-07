@@ -1,5 +1,7 @@
 import User from '../models/auth_user.js';
 import bycrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 
 const registerUser = async (req, res) => {
   const { username, useremail, userpassword } = req.body;
@@ -25,15 +27,15 @@ const registerUser = async (req, res) => {
       const hashedPassword = await bycrypt.hash(userpassword, salt);
 
       const newUser = await User.create({
-        userName : username,
-        userEmail : useremail,
-        userPassword : hashedPassword,
+        userName: username,
+        userEmail: useremail,
+        userPassword: hashedPassword,
       })
-      
-      if(newUser){
+
+      if (newUser) {
         return res.status(201).json({
-          success : true ,
-          message : "User registered successfully"
+          success: true,
+          message: "User registered successfully"
         })
       }
     }
@@ -55,4 +57,61 @@ const registerUser = async (req, res) => {
   }
 }
 
-export default  registerUser ;
+const loginController = async (req, res) => {
+  try {
+    try {
+      const { username, userpassword } = req.body;
+      const checkuser = await User.findOne({ userName: username });
+      if (!checkuser) {
+        return res.status(404).json({
+          success: false,
+          message: "User Not Found"
+        })
+      }
+      const checkPassword = await bycrypt.compare(userpassword, checkuser.userPassword)
+      if (!checkPassword) {
+        return res.status(404).json({
+          success: false,
+          message: "Invalid Password"
+        })
+      }
+
+      const accessToken = jwt.sign({
+        username : checkuser.userName,
+        userId : checkuser._id,
+        useremail : checkuser.userEmail
+      } ,
+       process.env.JWT_SECRET, 
+       {expiresIn: '1d'}
+      );
+
+      return res.status(200).json({
+        success : true ,
+        message: "User logged in successfully",
+        accessToken : accessToken,
+        user : checkuser
+      })
+      
+
+    }
+    catch (error) {
+      console.log(error);
+      return res.status(400).json({
+        success: false,
+        message: "User is not logged in "
+      })
+    }
+  }
+  catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error"
+    })
+  }
+}
+
+
+
+
+export  { registerUser , loginController };
