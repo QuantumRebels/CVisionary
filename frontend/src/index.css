@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+.app {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  height: 90vh;
+}
