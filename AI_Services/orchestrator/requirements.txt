@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pydantic
+langchain
+langchain-openai
+langchain-google-genai
+python-dotenv
+httpx
+google-generativeai
+tenacity
+
+# For LangChain Community if specific integrations are needed
+# langchain-community
