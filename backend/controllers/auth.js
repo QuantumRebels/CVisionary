@@ -70,7 +70,7 @@ const loginController = async (req, res) => {
       }
       const checkPassword = await bycrypt.compare(userpassword, checkuser.userPassword)
       if (!checkPassword) {
-        return res.status(404).json({
+        return res.status(401).json({
           success: false,
           message: "Invalid Password"
         })
