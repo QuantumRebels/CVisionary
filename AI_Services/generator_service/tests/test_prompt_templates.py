@@ -1,116 +1,69 @@
-import pytest
-from prompt_templates import render_rag_prompt, RAG_PROMPT_TEMPLATE
+# tests/test_prompt_templates.py
 
+from prompt_templates import (
+    FULL_RESUME_TEMPLATE,
+    SECTION_REWRITE_TEMPLATE,
+)
 
-class TestRenderRagPrompt:
-    def test_render_basic_prompt(self):
-        """Test rendering basic RAG prompt with single chunk."""
-        chunks = [
-            {
-                "source_type": "resume",
-                "source_id": "resume1",
-                "text": "Python developer with 5 years experience"
-            }
-        ]
-        keywords = {
-            "required": ["Python", "AWS"],
-            "preferred": ["Docker"]
-        }
-        
-        result = render_rag_prompt("Test Job Description", chunks, keywords)
-        
-        assert "Python, AWS" in result
-        assert "Docker" in result
-        assert "resume (ID: resume1)" in result
-        assert "Python developer with 5 years experience" in result
-        assert "Generate 5 concise bullet points" in result
-    
-    def test_render_multiple_chunks(self):
-        """Test rendering RAG prompt with multiple chunks."""
-        chunks = [
-            {
-                "source_type": "resume",
-                "source_id": "resume1",
-                "text": "Python developer"
-            },
-            {
-                "source_type": "project",
-                "source_id": "project1",
-                "text": "Built REST API"
-            }
-        ]
-        keywords = {
-            "required": ["Python"],
-            "preferred": []
-        }
-        
-        result = render_rag_prompt("Test Job Description", chunks, keywords)
-        
-        assert "top 2 relevant user passages" in result
-        assert "resume (ID: resume1)" in result
-        assert "project (ID: project1)" in result
-        assert "Python developer" in result
-        assert "Built REST API" in result
-    
-    def test_render_empty_skills(self):
-        """Test rendering with empty skill lists."""
-        chunks = [
-            {
-                "source_type": "resume",
-                "source_id": "resume1",
-                "text": "General experience"
-            }
-        ]
-        keywords = {
-            "required": [],
-            "preferred": []
-        }
-        
-        result = render_rag_prompt("Test Job Description", chunks, keywords)
-        
-        assert "The job requires: ." in result
-        assert "Preferred skills: ." in result
-        assert "General experience" in result
-    
-    def test_render_empty_chunks(self):
-        """Test rendering with empty chunks list."""
-        chunks = []
-        keywords = {
-            "required": ["Python"],
-            "preferred": ["AWS"]
-        }
-        
-        result = render_rag_prompt("Test Job Description", chunks, keywords)
-        
-        assert "Python" in result
-        assert "AWS" in result
-        assert "top 0 relevant user passages" in result
-        assert "Generate 5 concise bullet points" in result
-    
-    def test_render_special_characters(self):
-        """Test rendering with special characters in text."""
-        chunks = [
-            {
-                "source_type": "resume",
-                "source_id": "resume1",
-                "text": "Python & AWS \"expert\" with 100% success rate"
-            }
-        ]
-        keywords = {
-            "required": ["Python & AWS"],
-            "preferred": []
-        }
-        
-        result = render_rag_prompt("Test Job Description", chunks, keywords)
-        
-        assert "Python & AWS \"expert\" with 100% success rate" in result
-        assert "Python & AWS" in result
-    
-    def test_template_structure(self):
-        """Test that the template contains all required sections."""
-        assert "The job requires:" in RAG_PROMPT_TEMPLATE
-        assert "Preferred skills:" in RAG_PROMPT_TEMPLATE
-        assert "Here are the top" in RAG_PROMPT_TEMPLATE
-        assert "relevant user passages:" in RAG_PROMPT_TEMPLATE
-        assert "Generate 5 concise bullet points" in RAG_PROMPT_TEMPLATE
-        assert "maximum 20 words each" in RAG_PROMPT_TEMPLATE
+def test_full_resume_template_rendering():
+    """
+    Tests that the full resume template renders all placeholders correctly.
+    """
+    # Arrange
+    mock_data = {
+        "job_description": "A job for a Python developer.",
+        "profile_context": "User has 5 years of Python experience.",
+    }
+
+    # Act
+    rendered_prompt = FULL_RESUME_TEMPLATE.render(**mock_data)
+
+    # Assert
+    # FIX: Make assertions less brittle to whitespace and formatting
+    assert mock_data["job_description"] in rendered_prompt
+    assert mock_data["profile_context"] in rendered_prompt
+    assert "JOB DESCRIPTION" in rendered_prompt
+    assert "RELEVANT CONTEXT FROM USER'S PROFILE" in rendered_prompt
+    assert "Return your response as a single, valid JSON object" in rendered_prompt
+
+def test_section_rewrite_template_conditional_logic():
+    """
+    Tests the conditional blocks within the section rewrite template.
+    """
+    base_data = {
+        "job_description": "A job for a project manager.",
+        "relevant_context": "User has managed large projects.",
+    }
+
+    # Case 1: With existing_text
+    data_with_text = {**base_data, "section_id": "summary", "existing_text": "Old summary."}
+    prompt1 = SECTION_REWRITE_TEMPLATE.render(**data_with_text)
+    assert "CURRENT SECTION CONTENT" in prompt1
+    assert "Old summary." in prompt1
+
+    # Case 2: Without existing_text
+    data_without_text = {**base_data, "section_id": "summary", "existing_text": None}
+    prompt2 = SECTION_REWRITE_TEMPLATE.render(**data_without_text)
+    assert "CURRENT SECTION CONTENT" not in prompt2
+
+    # Case 3: section_id is 'experience'
+    data_experience = {**base_data, "section_id": "experience"}
+    prompt3 = SECTION_REWRITE_TEMPLATE.render(**data_experience)
+    assert "**SECTION TO REWRITE:** experience" in prompt3
+    assert "1. Focus exclusively on rewriting the \"experience\" section." in prompt3
+
+    # Case 4: section_id is 'skills'
+    data_skills = {**base_data, "section_id": "skills"}
+    prompt4 = SECTION_REWRITE_TEMPLATE.render(**data_skills)
+    assert "**SECTION TO REWRITE:** skills" in prompt4
+    assert "1. Focus exclusively on rewriting the \"skills\" section." in prompt4
+
+    # Case 5: section_id is 'summary'
+    data_summary = {**base_data, "section_id": "summary"}
+    prompt5 = SECTION_REWRITE_TEMPLATE.render(**data_summary)
+    assert "**SECTION TO REWRITE:** summary" in prompt5
+    assert "1. Focus exclusively on rewriting the \"summary\" section." in prompt5
+
+    # Case 6: Ensure the output format specifies the correct section_id
+    prompt6 = SECTION_REWRITE_TEMPLATE.render(**data_summary)
+    assert '"summary": "A rewritten, impactful professional summary' in prompt6

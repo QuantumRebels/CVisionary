@@ -1,57 +1,52 @@
+# tests/test_schemas.py
+
 import pytest
 from pydantic import ValidationError
-from schemas import GenerateRequest, GenerateResponse
+from datetime import datetime
 
+from schemas import (
+    FullGenerateRequest,
+    SectionGenerateRequest,
+    ChunkItem,
+)
 
-class TestGenerateRequest:
-    def test_valid_request(self):
-        """Test valid GenerateRequest creation."""
-        request = GenerateRequest(job_description="Software Engineer role requiring Python and AWS")
-        assert request.job_description == "Software Engineer role requiring Python and AWS"
-    
-    def test_missing_job_description(self):
-        """Test GenerateRequest fails without job_description."""
-        with pytest.raises(ValidationError):
-            GenerateRequest()
-    
-    def test_empty_job_description(self):
-        """Test GenerateRequest with empty job_description."""
-        request = GenerateRequest(job_description="")
-        assert request.job_description == ""
-    
-    def test_long_job_description(self):
-        """Test GenerateRequest with very long job_description."""
-        long_text = "A" * 10000
-        request = GenerateRequest(job_description=long_text)
-        assert request.job_description == long_text
+def test_full_generate_request_validation():
+    """Tests validation for the FullGenerateRequest schema."""
+    # Happy path
+    req = FullGenerateRequest(user_id="u1", job_description="jd")
+    assert req.user_id == "u1"
 
+    # Unhappy path (empty strings)
+    with pytest.raises(ValidationError):
+        FullGenerateRequest(user_id="", job_description="jd")
+    with pytest.raises(ValidationError):
+        FullGenerateRequest(user_id="u1", job_description="")
 
-class TestGenerateResponse:
-    def test_valid_response(self):
-        """Test valid GenerateResponse creation."""
-        bullets = ["Bullet 1", "Bullet 2", "Bullet 3"]
-        prompt = "Test prompt"
-        response = GenerateResponse(bullets=bullets, raw_prompt=prompt)
-        assert response.bullets == bullets
-        assert response.raw_prompt == prompt
-    
-    def test_empty_bullets(self):
-        """Test GenerateResponse with empty bullets list."""
-        response = GenerateResponse(bullets=[], raw_prompt="Test prompt")
-        assert response.bullets == []
-        assert response.raw_prompt == "Test prompt"
-    
-    def test_missing_bullets(self):
-        """Test GenerateResponse fails without bullets."""
-        with pytest.raises(ValidationError):
-            GenerateResponse(raw_prompt="Test prompt")
-    
-    def test_missing_raw_prompt(self):
-        """Test GenerateResponse fails without raw_prompt."""
-        with pytest.raises(ValidationError):
-            GenerateResponse(bullets=["Bullet 1"])
-    
-    def test_invalid_bullets_type(self):
-        """Test GenerateResponse fails with non-list bullets."""
-        with pytest.raises(ValidationError):
-            GenerateResponse(bullets="Not a list", raw_prompt="Test prompt")
+def test_section_generate_request_validation():
+    """Tests validation for the SectionGenerateRequest schema."""
+    # Happy path
+    req = SectionGenerateRequest(user_id="u1", section_id="s1", job_description="jd")
+    assert req.section_id == "s1"
+
+    # Unhappy path (empty strings)
+    with pytest.raises(ValidationError):
+        SectionGenerateRequest(user_id="u1", section_id="", job_description="jd")
+
+def test_chunk_item_schema_with_optional_section_id():
+    """Ensures ChunkItem can handle a null section_id from the Retrieval Service."""
+    # This is a critical test to ensure alignment
+    chunk_data = {
+        "chunk_id": "c1",
+        "user_id": "u1",
+        "index_namespace": "profile",
+        "section_id": None, # This should be allowed
+        "source_type": "experience",
+        "source_id": "0",
+        "text": "some text",
+        "score": 0.9,
+        "created_at": datetime.utcnow(),
+    }
+    try:
+        ChunkItem(**chunk_data)
+    except ValidationError as e:
+        pytest.fail(f"ChunkItem failed to validate with section_id=None: {e}")

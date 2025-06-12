@@ -1,102 +1,181 @@
+# app.py
+
+"""
+FastAPI application for the Generator Service.
+"""
+import json
+import logging
 import os
-from fastapi import FastAPI, HTTPException, status
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
 import httpx
-from schemas import GenerateRequest, GenerateResponse
-from utils import extract_keywords, build_rag_prompt
-from llm_client import generate_bullets
+from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="CVisionary Generator Service")
+from schemas import (
+    FullGenerateRequest,
+    SectionGenerateRequest,
+    GenerateResponse,
+    HealthResponse,
+)
+from utils import (
+    retrieve_full_context,
+    retrieve_section_context,
+    format_context_for_prompt,
+)
+from prompt_templates import FULL_RESUME_TEMPLATE, SECTION_REWRITE_TEMPLATE
+from llm_client import invoke_gemini, LLMError
 
-# Environment variables
-EMBEDDING_SERVICE_URL = os.getenv("EMBEDDING_SERVICE_URL", "http://localhost:8001")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_API_URL = os.getenv("GEMINI_API_URL", "https://api.gemini.google/v1/generateText")
+# Configure logging
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=log_level,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
 
-@app.post("/generate/{user_id}", response_model=GenerateResponse)
-async def generate_resume(user_id: str, req: GenerateRequest):
-    # 1. Validate GEMINI_API_KEY
-    if not GEMINI_API_KEY:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="GEMINI_API_KEY environment variable is not set"
-        )
-    
+# Global HTTP client for sharing across requests
+http_client: httpx.AsyncClient
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Manage the lifecycle of the shared HTTP client."""
+    global http_client
+    logger.info("Starting up Generator Service")
+    http_client = httpx.AsyncClient(
+        timeout=httpx.Timeout(60.0),
+        limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
+    )
+    yield
+    logger.info("Shutting down Generator Service")
+    await http_client.aclose()
+
+
+app = FastAPI(
+    title="Generator Service",
+    description="AI-powered resume generation service",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+def get_http_client() -> httpx.AsyncClient:
+    """Dependency to provide the shared HTTP client."""
+    return http_client
+
+
+@app.get("/health", response_model=HealthResponse)
+async def health_check():
+    """Health check endpoint."""
+    return HealthResponse(status="healthy", service="generator-service")
+
+
+@app.post("/generate/full", response_model=GenerateResponse)
+async def generate_full_resume(
+    request: FullGenerateRequest, client: httpx.AsyncClient = Depends(get_http_client)
+):
+    """
+    Generate a complete resume from scratch based on user profile and job description.
+    """
+    logger.info(f"Full resume generation request for user {request.user_id}")
     try:
-        async with httpx.AsyncClient() as client:
-            # 2. Embed job description via Embedding Service
-            embed_response = await client.post(
-                f"{EMBEDDING_SERVICE_URL}/embed",
-                json={"text": req.job_description},
-                timeout=30.0
-            )
-            
-            if embed_response.status_code != 200:
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail="Embedding service failure"
-                )
-            
-            try:
-                embed_data = embed_response.json()
-                if not isinstance(embed_data, dict) or "embedding" not in embed_data or not embed_data["embedding"]:
-                    raise ValueError("Invalid or missing embedding in response")
-            except (ValueError, KeyError) as e:
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail="Embedding service failure"
-                )
-            
-            embedding = embed_data["embedding"]
-            
-            # 3. Retrieve chunks via Embedding Service
-            retrieve_response = await client.post(
-                f"{EMBEDDING_SERVICE_URL}/retrieve/{user_id}",
-                json={"query_embedding": embedding, "top_k": 5},
-                timeout=30.0
-            )
-            
-            if retrieve_response.status_code != 200:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="User not found or no chunks indexed"
-                )
-            
-            retrieve_data = retrieve_response.json()
-            chunks = retrieve_data.get("results", [])
-            
-            # 4. Extract keywords
-            keywords = extract_keywords(req.job_description)
-            
-            # 5. Build RAG prompt
-            prompt = build_rag_prompt(req.job_description, chunks, keywords)
-            
-            # 6. Call LLM
-            bullets = await generate_bullets(prompt)
-            
-            # 7. Check if bullets are empty or errors occurred
-            if not bullets:
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail="Failed to generate bullet points from LLM"
-                )
-            
-            # 8. Return response
-            return GenerateResponse(bullets=bullets, raw_prompt=prompt)
-            
-    except HTTPException:
-        # Re-raise HTTPException as is
-        raise
-    except httpx.RequestError as e:
+        top_k = request.top_k or int(os.getenv("DEFAULT_TOP_K", "7"))
+        
+        chunks = await retrieve_full_context(
+            client, request.user_id, request.job_description, top_k
+        )
+        profile_context = format_context_for_prompt(chunks)
+        
+        prompt = FULL_RESUME_TEMPLATE.render(
+            job_description=request.job_description, profile_context=profile_context
+        )
+        
+        generated_text = await invoke_gemini(client, prompt)
+        
+        # FIX: Ensure the generated text is a valid JSON string before returning
+        try:
+            json.loads(generated_text)
+        except json.JSONDecodeError:
+            logger.error(f"LLM did not return valid JSON. Raw output: {generated_text}")
+            raise LLMError("LLM failed to generate valid JSON output.")
+
+        return GenerateResponse(
+            generated_text=generated_text,
+            raw_prompt=prompt,
+            retrieval_mode="full",
+        )
+        
+    except (httpx.HTTPError, LLMError) as e:
+        logger.error(f"Downstream service error during full generation: {e}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Service communication error: {str(e)}"
+            detail=f"Failed to process request due to a downstream service error: {e}",
         )
     except Exception as e:
+        logger.error(f"Unexpected error in full generation: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {str(e)}"
+            detail="An unexpected internal error occurred.",
         )
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8002)
+
+@app.post("/generate/section", response_model=GenerateResponse)
+async def generate_section(
+    request: SectionGenerateRequest, client: httpx.AsyncClient = Depends(get_http_client)
+):
+    """
+    Generate or rewrite a specific section of a resume.
+    """
+    logger.info(f"Section generation for user {request.user_id}, section {request.section_id}")
+    try:
+        top_k = request.top_k or int(os.getenv("DEFAULT_TOP_K", "7"))
+        
+        chunks = await retrieve_section_context(
+            client, request.user_id, request.section_id, request.job_description, top_k
+        )
+        relevant_context = format_context_for_prompt(chunks)
+        
+        prompt = SECTION_REWRITE_TEMPLATE.render(
+            job_description=request.job_description,
+            section_id=request.section_id,
+            existing_text=request.existing_text or "",
+            relevant_context=relevant_context,
+        )
+        
+        generated_text = await invoke_gemini(client, prompt)
+
+        try:
+            json.loads(generated_text)
+        except json.JSONDecodeError:
+            logger.error(f"LLM did not return valid JSON. Raw output: {generated_text}")
+            raise LLMError("LLM failed to generate valid JSON output.")
+
+        return GenerateResponse(
+            generated_text=generated_text,
+            raw_prompt=prompt,
+            retrieval_mode="section",
+            section_id=request.section_id,
+        )
+
+    except (httpx.HTTPError, LLMError) as e:
+        logger.error(f"Downstream service error during section generation: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Failed to process request due to a downstream service error: {e}",
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error in section generation: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected internal error occurred.",
+        )
