@@ -3,6 +3,7 @@ import bycrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 
+
 const registerUser = async (req, res) => {
   const { username, useremail, userpassword } = req.body;
   try {
@@ -10,14 +11,14 @@ const registerUser = async (req, res) => {
 
       const checkuserEmail = await User.findOne({ userEmail: useremail });
       if (checkuserEmail) {
-        return res.status(404).json({
+        return res.status(400).json({
           success: false,
           message: "Email already exists",
         })
       }
       const checkuserName = await User.findOne({ userName: username });
       if (checkuserName) {
-        return res.status(404).json({
+        return res.status(400).json({
           success: false,
           message: " Username already exists",
         })
@@ -32,10 +33,20 @@ const registerUser = async (req, res) => {
         userPassword: hashedPassword,
       })
 
+      const accessToken = jwt.sign({
+        username : checkuser.userName,
+        userId : checkuser._id,
+        useremail : checkuser.userEmail
+      } ,
+       process.env.JWT_SECRET, 
+       {expiresIn: '1d'}
+      );
+
       if (newUser) {
         return res.status(201).json({
           success: true,
-          message: "User registered successfully"
+          message: "User registered successfully",
+          accessToken: accessToken
         })
       }
     }
