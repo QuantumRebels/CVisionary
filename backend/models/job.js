@@ -21,10 +21,7 @@ const JobSchema = new mongoose.Schema({
      Cateogory : {
       type : [String]
      },
-     createdAt : {
-      tyep : Date ,
-      default : Date.now()
-     }
+     
 })
 
 const Job = mongoose.model("Job",JobSchema);

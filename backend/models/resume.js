@@ -2,32 +2,41 @@ import mongoose from "mongoose";
 
 const ResumeSchema = new mongoose.Schema({
   userId: {
-    type:String
+    type:String,
+    required: true
   },
   name: {
-    type: String
+    type: String,
+    required:true
   },
   email: {
-    type: String
+    type: String,
+    required:true
   },
   phone_number: {
-    type: String
+    type: String,
+    required:true
   },
   headline: {
-    type: String
+    type: String,
+    required:true
   },
   location: {
-    type: String
+    type: String,
+    required:true
   },
   summary: {
-    type: String
+    type: String,
+    required:true
   },
 
   skills: {
-    type: [String]
+    type: [String],
+    required:true
   },
 
   experiences: [
+
     {
       job_title: {
         type: String,
@@ -120,28 +129,28 @@ const ResumeSchema = new mongoose.Schema({
     profile_link: {
       type: String,
     },
-    repos: [
-      {
-        repo_name: {
-          type: String,
-        },
-        repo_description: {
-          type: String,
-        },
-        repo_link: {
-          type: String,
-        },
-        repo_language: {
-          type: String,
-        },
-        stars: {
-          type: Number,
-        },
-        forks: {
-          type: Number,
-        }
-      }
-    ]
+    // repos: [
+    //   {
+    //     repo_name: {
+    //       type: String,
+    //     },
+    //     repo_description: {
+    //       type: String,
+    //     },
+    //     repo_link: {
+    //       type: String,
+    //     },
+    //     repo_language: {
+    //       type: String,
+    //     },
+    //     stars: {
+    //       type: Number,
+    //     },
+    //     forks: {
+    //       type: Number,
+    //     }
+      // }
+    // ]
   },
 
   linkedin: {
