@@ -1,72 +1,155 @@
-import re
-from typing import List, Dict
-from prompt_templates import render_rag_prompt
+"""
+Utility functions for orchestrating calls to the Retrieval Service.
+"""
+import logging
+from typing import List
+import httpx
+from .schemas import ChunkItem
 
-# Predefined skills list
-PREDEFINED_SKILLS = [
-    "Python", "AWS", "Docker", "Kubernetes", "React", "Node.js",
-    "JavaScript", "TypeScript", "Java", "C++", "C#", "Go",
-    "MySQL", "PostgreSQL", "MongoDB", "Redis", "Git", "Jenkins",
-    "Terraform", "Ansible", "Linux", "Azure", "GCP", "Microservices",
-    "REST", "GraphQL", "HTML", "CSS", "Vue.js", "Angular",
-    "FastAPI", "Django", "Flask", "Spring", "Express.js", "OAuth",
-    "CI/CD", "DevOps", "Agile", "Scrum", "TDD", "Machine Learning",
-    "AI", "Data Science", "Pandas", "NumPy", "TensorFlow", "PyTorch"
-]
+logger = logging.getLogger(__name__)
 
-def extract_keywords(text: str) -> Dict[str, List[str]]:
+
+async def retrieve_full_context(
+    client: httpx.AsyncClient, 
+    user_id: str, 
+    job_description: str, 
+    top_k: int
+) -> List[ChunkItem]:
     """
-    Extract keywords from job description text by matching against predefined skills.
+    Retrieve full context from the Retrieval Service for complete resume generation.
     
     Args:
-        text: Job description text
+        client: Shared HTTP client
+        user_id: User identifier
+        job_description: Job description for context matching
+        top_k: Number of top chunks to retrieve
         
     Returns:
-        Dict with 'required' and 'preferred' skill lists
+        List of ChunkItem objects containing relevant context
+        
+    Raises:
+        httpx.HTTPError: If the retrieval service call fails
     """
-    found_skills = []
+    import os
     
-    # Convert text to lowercase for case-insensitive matching
-    text_lower = text.lower()
+    retrieval_url = os.getenv("RETRIEVAL_SERVICE_URL", "http://localhost:8001")
+    endpoint = f"{retrieval_url}/retrieve/full"
     
-    # Iterate through predefined skills
-    for skill in PREDEFINED_SKILLS:
-        skill_lower = skill.lower()
-        escaped_skill_lower = re.escape(skill_lower)
-        
-        # Pattern to match the skill ensuring it's not part of a larger alphanumeric word
-        # and correctly handling skills with special characters.
-        # Looks for the skill either at the start (^) or preceded by a non-alphanumeric character (\W).
-        # Looks for the skill either at the end ($) or followed by a non-alphanumeric character (\W).
-        # The skill itself is captured. Using lookarounds to avoid consuming boundary characters.
-        pattern = r'(?:^|(?<=\W))' + escaped_skill_lower + r'(?=\W|$)'
-        
-        if re.search(pattern, text_lower):
-            found_skills.append(skill)
-    
-    return {
-        "required": found_skills,
-        "preferred": []  # Empty for now as specified
+    payload = {
+        "user_id": user_id,
+        "job_description": job_description,
+        "top_k": top_k
     }
+    
+    logger.info(f"Retrieving full context for user {user_id} with top_k={top_k}")
+    
+    try:
+        response = await client.post(endpoint, json=payload)
+        response.raise_for_status()
+        
+        chunks_data = response.json()
+        chunks = [ChunkItem(**chunk) for chunk in chunks_data]
+        
+        logger.info(f"Successfully retrieved {len(chunks)} chunks for full context")
+        return chunks
+        
+    except httpx.HTTPError as e:
+        logger.error(f"Failed to retrieve full context: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during full context retrieval: {e}")
+        raise
 
-def build_rag_prompt(job_description: str, chunks: List[Dict], keywords: Dict[str, List[str]]) -> str:
+
+async def retrieve_section_context(
+    client: httpx.AsyncClient,
+    user_id: str,
+    section_id: str,
+    job_description: str,
+    top_k: int
+) -> List[ChunkItem]:
     """
-    Build RAG prompt using chunks and keywords.
+    Retrieve section-specific context from the Retrieval Service.
     
     Args:
-        chunks: List of chunk dictionaries from embedding service
-        keywords: Dict with required and preferred skills
+        client: Shared HTTP client
+        user_id: User identifier
+        section_id: ID of the specific section
+        job_description: Job description for context matching
+        top_k: Number of top chunks to retrieve
         
     Returns:
-        Formatted prompt string
+        List of ChunkItem objects containing relevant context
+        
+    Raises:
+        httpx.HTTPError: If the retrieval service call fails
     """
-    # Transform chunks to minimal format needed for template
-    minimal_chunks = []
-    for chunk in chunks:
-        minimal_chunks.append({
-            "source_type": chunk.get("source_type", "unknown"),
-            "source_id": chunk.get("source_id", "unknown"),
-            "text": chunk.get("text", "")
-        })
+    import os
     
-    return render_rag_prompt(job_description=job_description, chunks=minimal_chunks, keywords=keywords)
+    retrieval_url = os.getenv("RETRIEVAL_SERVICE_URL", "http://localhost:8001")
+    endpoint = f"{retrieval_url}/retrieve/section"
+    
+    payload = {
+        "user_id": user_id,
+        "section_id": section_id,
+        "job_description": job_description,
+        "top_k": top_k
+    }
+    
+    logger.info(f"Retrieving section context for user {user_id}, section {section_id}")
+    
+    try:
+        response = await client.post(endpoint, json=payload)
+        response.raise_for_status()
+        
+        chunks_data = response.json()
+        chunks = [ChunkItem(**chunk) for chunk in chunks_data]
+        
+        logger.info(f"Successfully retrieved {len(chunks)} chunks for section context")
+        return chunks
+        
+    except httpx.HTTPError as e:
+        logger.error(f"Failed to retrieve section context: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during section context retrieval: {e}")
+        raise
+
+
+def format_context_for_prompt(chunks: List[ChunkItem]) -> str:
+    """
+    Format retrieved chunks into a human-readable context string for the LLM.
+    
+    Args:
+        chunks: List of ChunkItem objects from retrieval service
+        
+    Returns:
+        Formatted context string ready for inclusion in prompts
+    """
+    if not chunks:
+        return "No relevant context found."
+    
+    formatted_sections = []
+    
+    # Group chunks by source type for better organization
+    profile_chunks = [c for c in chunks if c.source_type == "profile"]
+    section_chunks = [c for c in chunks if c.source_type == "section"]
+    
+    # Format profile chunks
+    if profile_chunks:
+        formatted_sections.append("--- CONTEXT FROM PROFESSIONAL PROFILE ---")
+        for i, chunk in enumerate(profile_chunks, 1):
+            source_label = f"Experience #{i}" if "experience" in chunk.section_id.lower() else f"Profile Section: {chunk.section_id}"
+            formatted_sections.append(f"Source: {source_label}")
+            formatted_sections.append(f"Content: {chunk.text.strip()}")
+            formatted_sections.append("")  # Empty line for readability
+    
+    # Format section chunks
+    if section_chunks:
+        for chunk in section_chunks:
+            formatted_sections.append(f"--- CONTEXT FROM USER-EDITED SECTION ({chunk.section_id}) ---")
+            formatted_sections.append(f"Source: Section '{chunk.section_id}'")
+            formatted_sections.append(f"Content: {chunk.text.strip()}")
+            formatted_sections.append("")  # Empty line for readability
+    
+    return "\n".join(formatted_sections).strip()
