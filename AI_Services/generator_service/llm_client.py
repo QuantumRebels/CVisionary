@@ -1,10 +1,10 @@
+# llm_client.py
+
 """
 Client for interacting with the Google Gemini API.
 """
-import json
 import logging
 import os
-from typing import Any, Dict
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ async def invoke_gemini(client: httpx.AsyncClient, prompt: str) -> str:
         prompt: The prompt to send to the Gemini API
         
     Returns:
-        Generated text content from Gemini
+        Generated text content from Gemini, expected to be a JSON string.
         
     Raises:
         LLMError: If the API call fails or response is malformed
@@ -33,93 +33,48 @@ async def invoke_gemini(client: httpx.AsyncClient, prompt: str) -> str:
     if not api_key:
         raise LLMError("GEMINI_API_KEY environment variable is not set")
     
-    # Gemini API configuration
     model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-    temperature = float(os.getenv("GEMINI_TEMPERATURE", "0.7"))
-    max_tokens = int(os.getenv("GEMINI_MAX_TOKENS", "2048"))
+    temperature = float(os.getenv("GENERATION_TEMPERATURE", "0.7"))
+    max_tokens = int(os.getenv("GENERATION_MAX_TOKENS", "2048"))
     
-    # Construct the Gemini API URL
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     
-    # Prepare the request payload
+    # FIX: Request JSON output from the Gemini API
     payload = {
-        "contents": [
-            {
-                "parts": [
-                    {"text": prompt}
-                ]
-            }
-        ],
+        "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "temperature": temperature,
             "maxOutputTokens": max_tokens,
-            "responseMimeType": "text/plain"
-        }
+            "responseMimeType": "application/json",
+        },
     }
     
-    headers = {
-        "Content-Type": "application/json",
-        "x-goog-api-key": api_key
-    }
+    headers = {"Content-Type": "application/json"}
     
     logger.info(f"Invoking Gemini API with model {model}")
     
     try:
-        response = await client.post(
-            url,
-            json=payload,
-            headers=headers,
-            timeout=30.0
-        )
-        
+        response = await client.post(url, json=payload, headers=headers, timeout=60.0)
         response.raise_for_status()
         response_data = response.json()
         
-        # Parse the Gemini response format
-        if "candidates" not in response_data:
-            raise LLMError("Invalid response format: missing 'candidates' field")
-        
-        candidates = response_data["candidates"]
-        if not candidates:
-            raise LLMError("No candidates returned from Gemini API")
-        
-        candidate = candidates[0]
-        if "content" not in candidate:
-            raise LLMError("Invalid candidate format: missing 'content' field")
-        
-        content = candidate["content"]
-        if "parts" not in content:
-            raise LLMError("Invalid content format: missing 'parts' field")
-        
-        parts = content["parts"]
-        if not parts:
-            raise LLMError("No parts returned in content")
-        
-        # Extract the generated text
-        generated_text = parts[0].get("text", "")
-        if not generated_text:
-            raise LLMError("Empty text returned from Gemini API")
+        # Standard Gemini response parsing
+        generated_text = response_data["candidates"][0]["content"]["parts"][0]["text"]
         
         logger.info("Successfully generated content from Gemini API")
         return generated_text.strip()
         
-    except httpx.HTTPStatusError as e:
-        error_msg = f"Gemini API returned status {e.response.status_code}"
+    except (httpx.HTTPStatusError, httpx.RequestError) as e:
+        error_msg = f"Gemini API request failed: {e}"
         try:
             error_detail = e.response.json()
-            error_msg += f": {error_detail}"
+            error_msg += f" | Details: {error_detail}"
         except:
-            error_msg += f": {e.response.text}"
-        
-        logger.error(f"Gemini API error: {error_msg}")
-        raise LLMError(error_msg)
-        
-    except httpx.RequestError as e:
-        error_msg = f"Failed to connect to Gemini API: {e}"
+            pass
         logger.error(error_msg)
-        raise LLMError(error_msg)
+        raise LLMError(error_msg) from e
         
-    except Exception as e:
-        error_msg = f"Unexpected error calling Gemini API: {e}"
+    except (KeyError, IndexError) as e:
+        error_msg = f"Failed to parse Gemini response: {e}. Response: {response_data}"
         logger.error(error_msg)
-        raise LLMError(error_msg)
+        raise LLMError(error_msg) from e
