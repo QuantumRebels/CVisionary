@@ -1,8 +1,6 @@
 import sqlite3
-import numpy as np
 from typing import List, Optional, Tuple
 from datetime import datetime
-import os
 
 DB_PATH = "embeddings.db"
 
@@ -13,14 +11,14 @@ def get_connection() -> sqlite3.Connection:
     return conn
 
 def init_db() -> None:
-    """
-    Initialize database tables if they don't exist.
-    """
+    """Initialize database tables if they don't exist."""
     conn = get_connection()
     try:
         cursor = conn.cursor()
         
-        # Create users table
+        cursor.execute("DROP TABLE IF EXISTS chunks") # For easier dev, remove in prod
+        cursor.execute("DROP TABLE IF EXISTS users") # For easier dev, remove in prod
+        
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 user_id TEXT PRIMARY KEY,
@@ -28,27 +26,26 @@ def init_db() -> None:
             )
         """)
         
-        # Create chunks table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS chunks (
                 chunk_id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
+                index_namespace TEXT NOT NULL, -- 'profile' or 'resume_sections'
+                section_id TEXT, -- User-defined ID for resume sections
                 source_type TEXT NOT NULL,
                 source_id TEXT NOT NULL,
                 text TEXT NOT NULL,
                 embedding BLOB NOT NULL,
+                created_at TEXT NOT NULL,
                 FOREIGN KEY (user_id) REFERENCES users (user_id)
             )
         """)
         
-        # Create index on user_id for faster queries
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_chunks_user_id ON chunks (user_id)
-        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_chunks_user_id_namespace ON chunks (user_id, index_namespace)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_chunks_user_section_id ON chunks (user_id, section_id)")
         
         conn.commit()
         print("Database initialized successfully")
-        
     except Exception as e:
         print(f"Error initializing database: {e}")
         conn.rollback()
@@ -56,27 +53,18 @@ def init_db() -> None:
     finally:
         conn.close()
 
-def store_chunk(chunk_id: str, user_id: str, source_type: str, source_id: str, 
-                text: str, embedding_bytes: bytes) -> None:
-    """
-    Store a chunk with its embedding in the database.
-    
-    Args:
-        chunk_id: Unique identifier for the chunk
-        user_id: User identifier
-        source_type: Type of source (e.g., 'experience', 'project', 'skills')
-        source_id: Identifier within the source type
-        text: The actual text content
-        embedding_bytes: Serialized embedding vector as bytes
-    """
+def store_chunk(chunk_id: str, user_id: str, namespace: str, section_id: Optional[str],
+                source_type: str, source_id: str, text: str, embedding_bytes: bytes) -> None:
+    """Store a chunk with its embedding and metadata in the database."""
     conn = get_connection()
     try:
         cursor = conn.cursor()
+        current_time = datetime.utcnow().isoformat()
         cursor.execute("""
             INSERT OR REPLACE INTO chunks 
-            (chunk_id, user_id, source_type, source_id, text, embedding)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (chunk_id, user_id, source_type, source_id, text, embedding_bytes))
+            (chunk_id, user_id, index_namespace, section_id, source_type, source_id, text, embedding, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (chunk_id, user_id, namespace, section_id, source_type, source_id, text, embedding_bytes, current_time))
         conn.commit()
     except Exception as e:
         print(f"Error storing chunk {chunk_id}: {e}")
@@ -85,21 +73,12 @@ def store_chunk(chunk_id: str, user_id: str, source_type: str, source_id: str,
     finally:
         conn.close()
 
-def get_all_chunks() -> List[Tuple[str, str, str, str, str, bytes]]:
-    """
-    Retrieve all chunks from the database.
-    
-    Returns:
-        List of (chunk_id, user_id, source_type, source_id, text, embedding_blob) tuples
-    """
+def get_all_chunks() -> List[sqlite3.Row]:
+    """Retrieve all chunks from the database."""
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT chunk_id, user_id, source_type, source_id, text, embedding
-            FROM chunks
-            ORDER BY user_id, source_type, source_id
-        """)
+        cursor.execute("SELECT * FROM chunks ORDER BY user_id, index_namespace")
         return cursor.fetchall()
     except Exception as e:
         print(f"Error fetching all chunks: {e}")
@@ -107,24 +86,12 @@ def get_all_chunks() -> List[Tuple[str, str, str, str, str, bytes]]:
     finally:
         conn.close()
 
-def get_chunk_by_id(chunk_id: str) -> Optional[Tuple[str, str, str, str, str, bytes]]:
-    """
-    Retrieve a single chunk by its ID.
-    
-    Args:
-        chunk_id: Unique chunk identifier
-        
-    Returns:
-        Tuple of (chunk_id, user_id, source_type, source_id, text, embedding_blob) or None
-    """
+def get_chunk_by_id(chunk_id: str) -> Optional[sqlite3.Row]:
+    """Retrieve a single chunk by its ID."""
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT chunk_id, user_id, source_type, source_id, text, embedding
-            FROM chunks
-            WHERE chunk_id = ?
-        """, (chunk_id,))
+        cursor.execute("SELECT * FROM chunks WHERE chunk_id = ?", (chunk_id,))
         return cursor.fetchone()
     except Exception as e:
         print(f"Error fetching chunk {chunk_id}: {e}")
@@ -132,51 +99,67 @@ def get_chunk_by_id(chunk_id: str) -> Optional[Tuple[str, str, str, str, str, by
     finally:
         conn.close()
 
-def mark_user_indexed(user_id: str) -> None:
-    """
-    Mark a user as indexed with current timestamp.
-    
-    Args:
-        user_id: User identifier
-    """
+def get_user_chunks_by_namespace(user_id: str, namespace: str) -> List[sqlite3.Row]:
+    """Get all chunks for a specific user and namespace."""
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        current_time = datetime.now().isoformat()
-        cursor.execute("""
-            INSERT OR REPLACE INTO users (user_id, last_indexed_at)
-            VALUES (?, ?)
-        """, (user_id, current_time))
-        conn.commit()
+        cursor.execute(
+            "SELECT * FROM chunks WHERE user_id = ? AND index_namespace = ?",
+            (user_id, namespace)
+        )
+        return cursor.fetchall()
     except Exception as e:
-        print(f"Error marking user {user_id} as indexed: {e}")
+        print(f"Error fetching chunks for user {user_id} in namespace {namespace}: {e}")
+        return []
+    finally:
+        conn.close()
+
+def delete_user_chunks(user_id: str, namespace: str) -> int:
+    """Delete all chunks for a user in a specific namespace. Returns number of rows deleted."""
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM chunks WHERE user_id = ? AND index_namespace = ?", (user_id, namespace))
+        deleted_rows = cursor.rowcount
+        conn.commit()
+        return deleted_rows
+    except Exception as e:
+        print(f"Error deleting chunks for user {user_id} in namespace {namespace}: {e}")
         conn.rollback()
         raise
     finally:
         conn.close()
 
-def get_user_chunks(user_id: str) -> List[Tuple[str, str, str, str, str, bytes]]:
-    """
-    Get all chunks for a specific user.
-    
-    Args:
-        user_id: User identifier
-        
-    Returns:
-        List of (chunk_id, user_id, source_type, source_id, text, embedding_blob) tuples
-    """
+def delete_chunks_by_section_id(user_id: str, section_id: str) -> int:
+    """Delete all chunks associated with a specific user and section_id. Returns number of rows deleted."""
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT chunk_id, user_id, source_type, source_id, text, embedding
-            FROM chunks
-            WHERE user_id = ?
-            ORDER BY source_type, source_id
-        """, (user_id,))
-        return cursor.fetchall()
+        # This will only target 'resume_sections' namespace implicitly
+        cursor.execute("DELETE FROM chunks WHERE user_id = ? AND section_id = ?", (user_id, section_id))
+        deleted_rows = cursor.rowcount
+        conn.commit()
+        return deleted_rows
     except Exception as e:
-        print(f"Error fetching chunks for user {user_id}: {e}")
-        return []
+        print(f"Error deleting chunks for section {section_id}: {e}")
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def mark_user_indexed(user_id: str) -> None:
+    """Mark a user as indexed with current timestamp."""
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        current_time = datetime.utcnow().isoformat()
+        cursor.execute("INSERT OR REPLACE INTO users (user_id, last_indexed_at) VALUES (?, ?)", (user_id, current_time))
+        conn.commit()
+    except Exception as e:
+        print(f"Error marking user {user_id} as indexed: {e}")
+        conn.rollback()
+        raise
     finally:
         conn.close()

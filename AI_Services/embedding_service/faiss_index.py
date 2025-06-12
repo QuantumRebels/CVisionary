@@ -1,124 +1,112 @@
 import faiss
 import numpy as np
 from typing import Dict, Tuple, List, Optional
+import sqlite3
 
-# Global dictionary to store FAISS indices per user
-# Structure: user_id -> (faiss_index, id_to_chunk_id_map)
-user_indices: Dict[str, Tuple[faiss.IndexFlatIP, Dict[int, str]]] = {}
+from db import get_user_chunks_by_namespace
 
-def build_index_from_db(all_rows: List[tuple]) -> None:
-    """
-    Build FAISS indices from all chunks in database.
-    Called once during startup.
-    
-    Args:
-        all_rows: List of (chunk_id, user_id, source_type, source_id, text, embedding_blob) tuples
-    """
+# Global dictionary to store FAISS indices per user and namespace
+# Structure: user_id -> namespace -> (faiss_index, id_to_chunk_id_map)
+user_indices: Dict[str, Dict[str, Tuple[faiss.IndexFlatIP, Dict[int, str]]]] = {}
+
+def build_index_from_db(all_rows: List[sqlite3.Row]) -> None:
+    """Build FAISS indices from all chunks in database, respecting namespaces."""
     global user_indices
     user_indices.clear()
     
-    # Group chunks by user_id
-    user_chunks: Dict[str, List[tuple]] = {}
+    # Group chunks by user_id and then by namespace
+    user_namespace_chunks: Dict[str, Dict[str, List[sqlite3.Row]]] = {}
     for row in all_rows:
-        chunk_id, user_id, source_type, source_id, text, embedding_blob = row
-        if user_id not in user_chunks:
-            user_chunks[user_id] = []
-        user_chunks[user_id].append(row)
+        user_id = row['user_id']
+        namespace = row['index_namespace']
+        
+        if user_id not in user_namespace_chunks:
+            user_namespace_chunks[user_id] = {}
+        if namespace not in user_namespace_chunks[user_id]:
+            user_namespace_chunks[user_id][namespace] = []
+        user_namespace_chunks[user_id][namespace].append(row)
     
-    # Create FAISS index for each user
-    for user_id, chunks in user_chunks.items():
-        if not chunks:
-            continue
-            
-        # Create FAISS index with inner product (cosine similarity for normalized vectors)
-        dim = 384  # Embedding dimension
-        index = faiss.IndexFlatIP(dim)
-        
-        # Create mapping from FAISS row ID to chunk ID
-        id_to_chunk_id = {}
-        
-        # Add all embeddings to the index
-        embeddings = []
-        for i, (chunk_id, _, _, _, _, embedding_blob) in enumerate(chunks):
-            # Convert blob back to numpy array
-            embedding = np.frombuffer(embedding_blob, dtype=np.float32)
-            embeddings.append(embedding)
-            id_to_chunk_id[i] = chunk_id
-        
-        # Add embeddings to FAISS index
-        if embeddings:
-            embeddings_matrix = np.vstack(embeddings)
-            index.add(embeddings_matrix)
-        
-        user_indices[user_id] = (index, id_to_chunk_id)
+    # Create FAISS index for each user/namespace pair
+    for user_id, namespaces in user_namespace_chunks.items():
+        if user_id not in user_indices:
+            user_indices[user_id] = {}
+        for namespace, chunks in namespaces.items():
+            _build_single_index(user_id, namespace, chunks)
     
-    print(f"Built FAISS indices for {len(user_indices)} users")
+    print(f"Built FAISS indices for {len(user_indices)} users across namespaces.")
 
-def add_to_index(user_id: str, chunk_id: str, embedding_vector: np.ndarray) -> None:
-    """
-    Add a new embedding vector to the user's FAISS index.
+def _build_single_index(user_id: str, namespace: str, chunks: List[sqlite3.Row]):
+    """Helper to build or rebuild one specific index."""
+    dim = 384
+    index = faiss.IndexFlatIP(dim)
+    id_to_chunk_id = {}
+    embeddings = []
     
-    Args:
-        user_id: User identifier
-        chunk_id: Unique chunk identifier
-        embedding_vector: Normalized 384-dimensional embedding vector
-    """
-    global user_indices
+    for i, chunk_row in enumerate(chunks):
+        embedding = np.frombuffer(chunk_row['embedding'], dtype=np.float32)
+        embeddings.append(embedding)
+        id_to_chunk_id[i] = chunk_row['chunk_id']
+        
+    if embeddings:
+        embeddings_matrix = np.vstack(embeddings)
+        index.add(embeddings_matrix)
     
     if user_id not in user_indices:
-        # Create new index for this user
+        user_indices[user_id] = {}
+    user_indices[user_id][namespace] = (index, id_to_chunk_id)
+    print(f"Built FAISS index for user '{user_id}' namespace '{namespace}' with {len(chunks)} items.")
+
+def rebuild_index_for_user_namespace(user_id: str, namespace: str) -> None:
+    """Fetches all chunks for a user/namespace from DB and rebuilds the FAISS index."""
+    chunks = get_user_chunks_by_namespace(user_id, namespace)
+    _build_single_index(user_id, namespace, chunks)
+
+def add_to_index(user_id: str, namespace: str, chunk_id: str, embedding_vector: np.ndarray) -> None:
+    """Add a new embedding vector to a user's namespaced FAISS index."""
+    global user_indices
+    
+    if user_id not in user_indices or namespace not in user_indices[user_id]:
+        # Create new index if it doesn't exist
         dim = 384
         index = faiss.IndexFlatIP(dim)
         id_to_chunk_id = {}
-        user_indices[user_id] = (index, id_to_chunk_id)
-    else:
-        index, id_to_chunk_id = user_indices[user_id]
+        if user_id not in user_indices:
+            user_indices[user_id] = {}
+        user_indices[user_id][namespace] = (index, id_to_chunk_id)
+
+    index, id_to_chunk_id = user_indices[user_id][namespace]
     
-    # Add embedding to index
-    embedding_matrix = embedding_vector.reshape(1, -1)
-    index.add(embedding_matrix)
-    
-    # Update mapping (new vector gets the next available ID)
-    new_faiss_id = index.ntotal - 1  # FAISS IDs are 0-indexed
+    new_faiss_id = index.ntotal
+    index.add(embedding_vector.reshape(1, -1))
     id_to_chunk_id[new_faiss_id] = chunk_id
 
-def search(user_id: str, query_vector: np.ndarray, top_k: int) -> Tuple[List[str], List[float]]:
-    """
-    Search for similar embeddings in the user's FAISS index.
-    
-    Args:
-        user_id: User identifier
-        query_vector: Normalized query embedding vector
-        top_k: Number of top results to return
-        
-    Returns:
-        Tuple of (chunk_ids, similarity_scores)
-    """
+def search(user_id: str, namespace: str, query_vector: np.ndarray, top_k: int) -> Tuple[List[str], List[float]]:
+    """Search for similar embeddings in a user's namespaced FAISS index."""
     global user_indices
     
-    if user_id not in user_indices:
+    if user_id not in user_indices or namespace not in user_indices[user_id]:
         return [], []
     
-    index, id_to_chunk_id = user_indices[user_id]
+    index, id_to_chunk_id = user_indices[user_id][namespace]
     
     if index.ntotal == 0:
         return [], []
     
-    # Limit top_k to available chunks
     actual_k = min(top_k, index.ntotal)
-    
-    # Search in FAISS index
     query_matrix = query_vector.reshape(1, -1)
     scores, faiss_ids = index.search(query_matrix, actual_k)
     
-    # Convert FAISS IDs to chunk IDs
-    chunk_ids = []
-    similarity_scores = []
-    
-    for i in range(actual_k):
-        faiss_id = faiss_ids[0][i]
-        if faiss_id in id_to_chunk_id:
-            chunk_ids.append(id_to_chunk_id[faiss_id])
-            similarity_scores.append(scores[0][i])
+    chunk_ids = [id_to_chunk_id[i] for i in faiss_ids[0] if i in id_to_chunk_id]
+    similarity_scores = [float(s) for s in scores[0]]
     
     return chunk_ids, similarity_scores
+
+def delete_user_index(user_id: str, namespace: Optional[str] = None):
+    """Deletes an index. If namespace is given, deletes only that sub-index."""
+    if user_id in user_indices:
+        if namespace and namespace in user_indices[user_id]:
+            del user_indices[user_id][namespace]
+            print(f"Deleted FAISS index for user '{user_id}' namespace '{namespace}'.")
+        elif not namespace:
+            del user_indices[user_id]
+            print(f"Deleted all FAISS indices for user '{user_id}'.")
