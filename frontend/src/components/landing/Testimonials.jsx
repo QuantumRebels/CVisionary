@@ -12,7 +12,7 @@ const testimonials = [
     img: "https://randomuser.me/api/portraits/men/32.jpg",
   },
   {
-    name: "Priya Singh",
+    name: "Kristen Smith",
     text: "The ability to export my resume in both PDF and LaTeX formats is incredibly useful. ResumeCraft is a must-have for any job seeker.",
     img: "https://randomuser.me/api/portraits/women/68.jpg",
   },
