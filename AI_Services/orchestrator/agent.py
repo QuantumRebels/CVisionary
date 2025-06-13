@@ -1,7 +1,6 @@
-# agent.py
+# orchestrator_service/agent.py
 
 import os
-import json
 from langchain.agents import AgentExecutor
 from langchain.agents.format_scratchpad.openai_tools import format_to_openai_tool_messages
 from langchain.agents.output_parsers.openai_tools import OpenAIToolsAgentOutputParser
@@ -9,10 +8,9 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.memory import ConversationBufferMemory
 
-from .tools import ToolBox
-from .memory import get_session_history
+from tools import ToolBox
+from memory import get_session_history
 
-# A more robust prompt designed for tool calling agents.
 SYSTEM_PROMPT = """You are an expert resume-building assistant. Your goal is to help a user create or refine a resume for a specific job by intelligently using the tools at your disposal.
 
 **Your Process:**
@@ -46,7 +44,6 @@ def create_agent_executor(toolbox: ToolBox, session_id: str) -> AgentExecutor:
         toolbox.update_resume_in_memory_tool,
     ]
     
-    # Bind the tools to the LLM for tool-calling
     llm_with_tools = llm.bind_tools(tools)
     
     prompt = ChatPromptTemplate.from_messages([
