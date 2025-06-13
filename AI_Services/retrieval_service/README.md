@@ -1,46 +1,54 @@
 # CVisionary Retrieval Service
 
-This is a high-performance FastAPI microservice designed to act as an intelligent intermediary for context retrieval. It orchestrates calls to the **CVisionary Embedding Service** to fetch semantically relevant text chunks, which are then used by upstream services (like a Generation Service) to build or edit resumes.
+This is a high-performance FastAPI microservice designed to act as an intelligent intermediary for context retrieval. It orchestrates calls to the downstream **Embedding Service** to fetch semantically relevant text chunks, which are then used by upstream services (like a Generator Service) to build or edit resumes.
 
-The service is built with a focus on robustness, observability, and clear separation of concerns.
+## 🚀 Technology Stack
 
-- **FastAPI:** For the high-performance, asynchronous web framework.
-- **Pydantic:** For robust data validation and clear API schema definitions.
-- **HTTPX:** For efficient, asynchronous communication with downstream microservices.
-- **Structured Logging:** For clear, machine-parsable logs essential for monitoring and debugging in a distributed environment.
+The service is built with a focus on robustness, observability, and clear separation of concerns using:
 
-## Core Functionality
+- **FastAPI** - High-performance, asynchronous web framework
+- **Pydantic** - Robust data validation and API schemas
+- **HTTPX** - Efficient async communication with downstream services
+- **Structured Logging** - Machine-parsable logs for monitoring and debugging
 
-The Retrieval Service provides two primary functionalities:
+## 🏗️ Architecture & Core Concepts
 
-1.  **Full Context Retrieval:** Given a user ID and a target job description, it fetches the most relevant text chunks from the user's entire profile. This is ideal for generating a new resume from scratch.
+This service sits between a client (e.g., a Generation Service) and the Embedding Service. Its main responsibilities are to abstract complexity and provide a resilient, task-oriented API.
 
-2.  **Section-Specific Context Retrieval:** Given a user ID, a specific resume `section_id`, and a job description, it fetches relevant chunks that are explicitly filtered to that section. This is used when a user wants to edit or get suggestions for a single bullet point or section of their resume.
+```mermaid
+graph TD
+    Client[Client e.g., Generator Service] -->|1. POST /retrieve/full (user_id, job_desc)| RetrievalService[Retrieval Service]
+    subgraph "Retrieval Service Logic"
+        RetrievalService -->|2. POST /embed (job_desc)| EmbeddingService[Embedding Service]
+        EmbeddingService -->|3. Returns query_embedding| RetrievalService
+        RetrievalService -->|4. POST /retrieve/{user_id} (with embedding)| EmbeddingService
+        EmbeddingService -->|5. Returns relevant chunks| RetrievalService
+    end
+    RetrievalService -->|6. Returns RetrieveResponse| Client
+```
 
-### Architectural Role
+### 1. Abstraction Layer
+The Retrieval Service hides the complexity of the Embedding Service's API. A client doesn't need to know about `index_namespace` or the multi-step process of generating a query embedding. The client simply asks for *what* it wants ("full context" or "section context"), and this service handles *how* to get it.
 
-This service sits between a client (e.g., a Generation Service or a frontend application) and the Embedding Service. Its main responsibilities are:
+### 2. Two-Step Retrieval Orchestration
+For every request, the service performs a two-step orchestration:
+1.  **Embed:** It first calls the Embedding Service to convert the incoming `job_description` text into a vector embedding.
+2.  **Retrieve:** It then uses this newly generated embedding to query the Embedding Service for the most similar text chunks from the user's profile.
 
--   **Abstraction:** It hides the complexity of the Embedding Service's API (e.g., knowing which `index_namespace` to query). The client only needs to specify *what* it wants (full context or section context), not *how* to get it.
--   **Orchestration:** It performs a two-step call to the Embedding Service: first to generate a vector embedding for the job description, and second to use that embedding to retrieve similar chunks.
--   **Resilience:** It implements retry logic with exponential backoff for transient network or server errors when communicating with the Embedding Service, making the overall system more robust.
--   **Validation:** It enforces strict input and output schemas, ensuring data integrity.
+### 3. Resilience and Error Handling
+Communication with the downstream Embedding Service is wrapped in a **retry mechanism with exponential backoff**. This makes the system more robust against transient network issues or temporary server-side failures (5xx errors) from the dependency. It also provides structured JSON error responses for all exceptions.
 
-
-
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
-
--   Python 3.11+
--   A running instance of the **CVisionary Embedding Service**.
+- Python 3.9+
+- A running instance of the **CVisionary Embedding Service**.
 
 ### Local Setup
-
 1.  **Clone the repository and navigate to the service directory:**
     ```bash
     git clone <repository-url>
-    cd <repository-directory>/AI_Services/retrieval_service
+    cd <repository-directory>/retrieval_service
     ```
 
 2.  **Create and activate a virtual environment:**
@@ -55,56 +63,52 @@ This service sits between a client (e.g., a Generation Service or a frontend app
     ```
 
 4.  **Configure Environment Variables:**
-    Create a `.env` file in the `retrieval_service` directory or set the following environment variables in your shell:
-
+    Create a `.env` file in the `retrieval_service` directory or set the environment variables in your shell.
     ```env
+    # .env
     # REQUIRED: The full URL of the running Embedding Service
     EMBEDDING_SERVICE_URL="http://localhost:8001"
 
-    # OPTIONAL: The default number of chunks to retrieve if not specified in the request
+    # OPTIONAL: The default number of chunks to retrieve if not specified
     DEFAULT_TOP_K="5"
 
     # OPTIONAL: Set to "DEBUG" for more verbose logging
     LOG_LEVEL="INFO"
     ```
-    *Note: You may need to install `python-dotenv` (`pip install python-dotenv`) and add code to your `app.py` to load the `.env` file if you choose that method.*
 
 5.  **Run the service:**
+    The service is configured to run on port `8002` by default in most multi-service setups.
     ```bash
     uvicorn app:app --host 0.0.0.0 --port 8002 --reload
     ```
     The service will now be running at `http://localhost:8002`.
 
 6.  **Access the API Documentation:**
-    Navigate to `http://localhost:8002/docs` in your browser to see the interactive Swagger UI documentation.
+    Navigate to `http://localhost:8002/docs` in your browser.
 
-## API Documentation
+## 📚 API Documentation
 
-### Endpoints
+### Retrieval Endpoints
 
 #### 1. Retrieve Full Resume Context
-
-Fetches the most relevant chunks from a user's entire profile based on a job description.
+Fetches the most relevant chunks from a user's entire profile based on a job description. This queries the `profile` namespace in the Embedding Service.
 
 -   **Endpoint:** `POST /retrieve/full`
--   **Description:** Ideal for generating a new resume. It queries the `profile` namespace in the Embedding Service.
 -   **cURL Example:**
     ```bash
     curl -X POST "http://localhost:8002/retrieve/full" \
     -H "Content-Type: application/json" \
     -d '{
       "user_id": "user-123",
-      "job_description": "We are looking for a senior software engineer with experience in Python, FastAPI, and cloud-native technologies to lead our new platform team.",
-      "top_k": 5
+      "job_description": "We are looking for a senior software engineer with experience in Python, FastAPI, and cloud-native technologies.",
+      "top_k": 3
     }'
     ```
 
 #### 2. Retrieve Section-Specific Context
-
-Fetches the most relevant chunks filtered by a specific `section_id`.
+Fetches the most relevant chunks filtered by a specific `section_id`. This queries the `resume_sections` namespace in the Embedding Service.
 
 -   **Endpoint:** `POST /retrieve/section`
--   **Description:** Ideal for editing or getting suggestions for a specific resume bullet. It queries the `resume_sections` namespace in the Embedding Service.
 -   **cURL Example:**
     ```bash
     curl -X POST "http://localhost:8002/retrieve/section" \
@@ -113,24 +117,25 @@ Fetches the most relevant chunks filtered by a specific `section_id`.
       "user_id": "user-123",
       "section_id": "exp-bullet-45",
       "job_description": "We need someone who can engineer real-time data processing pipelines.",
-      "top_k": 3
+      "top_k": 2
     }'
     ```
 
 -   **Success Response (200 OK for both endpoints):**
+    The response is a `RetrieveResponse` object containing a list of `ChunkItem` objects.
     ```json
     {
       "results": [
         {
-          "chunk_id": "some-uuid-...",
+          "chunk_id": "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6",
           "user_id": "user-123",
           "index_namespace": "profile",
           "section_id": null,
           "source_type": "experience",
-          "source_id": "0",
-          "text": "Led a team of five engineers in the development of a cloud-native SaaS platform...",
-          "score": 0.897,
-          "created_at": "2023-10-27T10:00:00Z"
+          "source_id": "exp-1",
+          "text": "Led a team of five engineers in the development of a cloud-native SaaS platform using Python and FastAPI.",
+          "score": 0.912,
+          "created_at": "2023-10-28T12:00:00Z"
         }
       ]
     }
@@ -141,13 +146,12 @@ Fetches the most relevant chunks filtered by a specific `section_id`.
 -   `GET /health`: A simple health check endpoint for service monitoring. Returns `{"status": "ok", "service": "retrieval"}`.
 -   `GET /`: Root endpoint with basic service information.
 
-## Error Handling
+## ⚠️ Error Handling
+The service provides structured JSON error responses for easier debugging by clients.
 
-The service provides structured JSON error responses.
-
--   **400 Bad Request:** The request body is invalid (e.g., empty `user_id`).
--   **404 Not Found:** The requested user or resource does not exist in the Embedding Service.
--   **422 Unprocessable Entity:** The request body is syntactically correct but semantically invalid (e.g., `top_k` is out of range).
+-   **400 Bad Request:** The request body is invalid (e.g., an empty `user_id` or `job_description`).
+-   **404 Not Found:** The requested user was not found in the downstream Embedding Service.
+-   **422 Unprocessable Entity:** The request body is syntactically correct but semantically invalid (e.g., `top_k` is out of the allowed range).
 -   **502 Bad Gateway:** The Retrieval Service could not get a valid response from the downstream Embedding Service after retries.
 -   **500 Internal Server Error:** An unexpected error occurred within the Retrieval Service itself.
 
@@ -160,33 +164,28 @@ The service provides structured JSON error responses.
 }
 ```
 
-## Running Tests
+## 🧪 Running Tests
+The service includes a suite of unit tests that mock the downstream Embedding Service.
 
-The service includes a comprehensive suite of unit tests that mock downstream dependencies.
-
-1.  **Install test dependencies:**
+1.  **Install test dependencies (if not already installed):**
     ```bash
     pip install pytest pytest-asyncio
     ```
 
-2.  **Run the test suite from the project root directory:**
+2.  **Run the test suite from the service's root directory:**
     ```bash
-    pytest AI_Services/retrieval_service/
+    pytest
     ```
 
-## Project Structure
+## 📁 Project Structure
 
 ```
-AI_Services/retrieval_service/
-├── app.py                # Main FastAPI application, endpoints, and lifecycle events
+retrieval_service/
+├── app.py                # Main FastAPI application, endpoints, and lifecycle
 ├── schemas.py            # Pydantic models for API request/response validation
 ├── utils.py              # Logic for communicating with the Embedding Service
 ├── requirements.txt      # Python package dependencies
 ├── README.md             # This file
 └── tests/                # Unit tests for the service
-    ├── __init__.py
-    ├── conftest.py       # Pytest fixtures and test setup
-    ├── test_app.py       # Tests for the API endpoints
-    ├── test_schemas.py   # Tests for the Pydantic models
-    └── test_utils.py     # Tests for the utility functions
+    └── ...
 ```

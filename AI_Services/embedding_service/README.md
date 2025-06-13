@@ -1,51 +1,92 @@
-# CVisionary Embedding Service
+# 🧠 CVisionary Embedding Service
 
-This is a high-performance FastAPI microservice designed to generate, store, and retrieve vector embeddings for user profile data. It serves as a foundational component for semantic search, content recommendation, and other AI-powered features.
+> **High-performance vector embedding service for semantic search and AI-powered features**
 
-The service uses a powerful combination of technologies:
-- **FastAPI:** For the high-performance, asynchronous web framework.
-- **Sentence Transformers:** For state-of-the-art text embedding generation.
-- **FAISS (Facebook AI Similarity Search):** For extremely fast, in-memory vector similarity searches.
-- **SQLite:** For persistent storage of chunk metadata and embeddings, ensuring data durability.
-- **Pydantic:** For robust data validation and clear API schema definitions.
+[![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.95.0-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-## Core Concepts
+## 🚀 Overview
 
-Before using the API, it's crucial to understand a few key design principles of this service.
+A high-performance FastAPI microservice for generating, storing, and retrieving vector embeddings. Powers semantic search and AI features across the CVisionary platform.
+
+### 🔧 Key Features
+
+- **Blazing Fast** - Optimized for low-latency vector similarity search
+- **Persistent Storage** - SQLite-backed storage with in-memory FAISS indices
+- **Multi-tenant** - Isolated indices per user and content type
+- **Production Ready** - Robust error handling, validation, and monitoring
+- **Easy Integration** - Simple REST API with OpenAPI documentation
+
+### 🛠️ Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| Web Framework | FastAPI |
+| Embedding Model | `all-MiniLM-L6-v2` (384d) |
+| Vector Search | FAISS |
+| Database | SQLite |
+| Validation | Pydantic v2 |
+| Async HTTP | HTTPX |
+| Testing | pytest |
+
+## Architecture & Core Concepts
+
+This service employs a hybrid storage model to balance persistence with high-speed retrieval. All data is permanently stored in a SQLite database, while a FAISS index is maintained in-memory for millisecond-latency searches.
+
+```mermaid
+graph TD
+    subgraph "Client"
+        A[API Client]
+    end
+
+    subgraph "Embedding Service"
+        B[FastAPI Endpoints]
+        C{In-Memory FAISS Index}
+        D[(SQLite DB: embeddings.db)]
+    end
+
+    A -- "Indexing Request (POST /index/...)" --> B
+    B -- "1. Stores chunks & embeddings" --> D
+    B -- "2. Rebuilds relevant index from DB" --> C
+    D -- "Loads chunks for user/namespace" --> C
+
+    A -- "Retrieval Request (POST /retrieve/...)" --> B
+    B -- "1. Fast search for chunk IDs" --> C
+    C -- "Returns chunk_ids & scores" --> B
+    B -- "2. Fetches full chunk data from DB" --> D
+    D -- "Returns chunk details" --> B
+    B -- "Returns complete response to client" --> A
+```
 
 ### 1. Hybrid Storage Model
-The service uses two storage systems for different purposes:
-- **SQLite (`embeddings.db`):** This is the **source of truth**. All text chunks, metadata, and embedding vectors are stored here permanently. This ensures that if the service restarts, no data is lost.
-- **In-Memory FAISS Index:** This is a **high-speed cache** for the embedding vectors. On startup, the service reads all embeddings from SQLite and loads them into FAISS indices in RAM. This allows for millisecond-latency similarity searches, which would be too slow to perform directly on the database.
+- **SQLite (`embeddings.db`):** This is the **source of truth**. All text chunks, metadata, and their vector embeddings are stored here permanently. If the service restarts, all data is reloaded from this database.
+- **In-Memory FAISS Index:** This is a **high-speed cache** for the vectors. On startup, the service pre-loads all embeddings from SQLite into FAISS. This enables extremely fast similarity searches that would be too slow to perform directly on the database.
 
 ### 2. Namespaced Indices
-To distinguish between different types of content, embeddings are stored in **namespaces**. Each user has their own set of indices, which are further divided into two main namespaces:
-
-- `profile`: This namespace contains embeddings generated from a full, automated scan of a user's profile (experience, skills, projects, etc.). This data is considered relatively static.
-- `resume_sections`: This namespace is specifically for embeddings generated from user-edited text, such as a custom resume bullet point or a rephrased project description. This data is dynamic and managed on a per-section basis.
-
-This separation allows retrieval calls to target the correct set of embeddings—for example, searching for general profile context versus searching only within user-edited content.
+To isolate different types of content, embeddings are stored in **namespaces**. Each user has their own set of indices, which are further divided into two main namespaces:
+- `profile`: Contains embeddings from a full, automated scan of a user's profile (experience, skills, etc.). This data is considered relatively static.
+- `resume_sections`: Specifically for embeddings from user-edited text, like a custom resume bullet point. This data is dynamic and managed on a per-section basis.
 
 ### 3. Idempotent and Atomic Operations
-The indexing endpoints are designed to be **idempotent**, meaning you can call them multiple times with the same input and get the same result without creating duplicate data.
-
-- **Full Profile Indexing (`/index/profile/{user_id}`):** This is a **destructive** operation. It first deletes all existing chunks and the FAISS index for the user's `profile` namespace before creating new ones. This ensures the profile is always up-to-date.
-- **Section Indexing (`/index/{user_id}/section`):** This is an "upsert" (update or insert) operation. It first deletes any existing chunks matching the provided `section_id` and then creates new ones. This is achieved by rebuilding the user's `resume_sections` FAISS index from the database after every change, guaranteeing consistency.
+The indexing endpoints are designed to be **idempotent**, meaning you can call them multiple times with the same input and get a consistent result without creating duplicate data.
+- **Full Profile Indexing (`/index/profile/{user_id}`):** A **destructive** operation. It deletes all previous `profile` data for the user before creating new embeddings.
+- **Section Indexing (`/index/{user_id}/section`):** An "upsert" (update or insert) operation. It deletes any existing chunks with the same `section_id` before creating new ones. Consistency is guaranteed by rebuilding the user's `resume_sections` FAISS index from the database after every change.
 
 ### 4. Text Chunking
-Long text fields (like job descriptions) are automatically split into smaller, semantically coherent chunks of about 150 words. This is done using `nltk` to respect sentence boundaries, which improves the quality and relevance of search results.
+Long text fields are automatically split into smaller, semantically coherent chunks (approx. 150 words) using `nltk` to respect sentence boundaries. This improves the quality and relevance of search results.
 
 ## Getting Started
 
 ### Prerequisites
-- Python 3.11+
+- Python 3.9+
 - A virtual environment tool (e.g., `venv`, `conda`)
 
 ### Local Setup
 1.  **Clone the repository:**
     ```bash
     git clone <repository-url>
-    cd <repository-directory>
+    cd <repository-directory>/embedding-service
     ```
 
 2.  **Create and activate a virtual environment:**
@@ -58,29 +99,29 @@ Long text fields (like job descriptions) are automatically split into smaller, s
     ```bash
     pip install -r requirements.txt
     ```
-    *Note: The first time you run the application, it may download the `nltk` 'punkt' tokenizer data.*
+    *Note: The first time you run the application, it will download the `nltk` 'punkt' tokenizer data.*
 
 4.  **Run the service:**
+    The service is configured to run on port `8001` by default in most multi-service setups.
     ```bash
-    uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+    uvicorn app:app --host 0.0.0.0 --port 8001 --reload
     ```
-    The service will now be running at `http://localhost:8000`.
+    The service will now be running at `http://localhost:8001`. A file named `embeddings.db` will be created in the directory.
 
 5.  **Access the API Documentation:**
-    Navigate to `http://localhost:8000/docs` in your browser to see the interactive Swagger UI documentation.
+    Navigate to `http://localhost:8001/docs` in your browser.
 
 ## API Documentation
 
 ### Indexing Endpoints
 
 #### 1. Index a Full User Profile
-This endpoint fetches a user's profile from an external service, chunks the text, generates embeddings, and stores them in the `profile` namespace. **This is a destructive operation that replaces all previous profile data for the user.**
+Re-indexes a user's entire profile from an external source. **This is a destructive operation that replaces all previous profile data for the user.**
 
 - **Endpoint:** `POST /index/profile/{user_id}`
-- **Description:** Re-indexes the entire user profile.
 - **cURL Example:**
   ```bash
-  curl -X POST "http://localhost:8000/index/profile/user-123"
+  curl -X POST "http://localhost:8001/index/profile/user-123"
   ```
 - **Success Response (200 OK):**
   ```json
@@ -91,13 +132,12 @@ This endpoint fetches a user's profile from an external service, chunks the text
   ```
 
 #### 2. Index a Resume Section
-This endpoint adds or updates the embeddings for a specific, user-edited piece of text (e.g., a resume bullet). It uses a `section_id` to uniquely identify the content.
+Adds or updates the embeddings for a specific piece of user-edited text.
 
 - **Endpoint:** `POST /index/{user_id}/section`
-- **Description:** Adds or updates a specific section.
 - **cURL Example:**
   ```bash
-  curl -X POST "http://localhost:8000/index/user-123/section" \
+  curl -X POST "http://localhost:8001/index/user-123/section" \
   -H "Content-Type: application/json" \
   -d '{
     "section_id": "exp-bullet-45",
@@ -114,13 +154,12 @@ This endpoint adds or updates the embeddings for a specific, user-edited piece o
   ```
 
 #### 3. Delete a Resume Section
-This endpoint removes all embeddings associated with a specific `section_id`.
+Removes all embeddings associated with a specific `section_id`.
 
 - **Endpoint:** `DELETE /index/{user_id}/section/{section_id}`
-- **Description:** Deletes all chunks for a given section.
 - **cURL Example:**
   ```bash
-  curl -X DELETE "http://localhost:8000/index/user-123/section/exp-bullet-45"
+  curl -X DELETE "http://localhost:8001/index/user-123/section/exp-bullet-45"
   ```
 - **Success Response (200 OK):**
   ```json
@@ -133,29 +172,12 @@ This endpoint removes all embeddings associated with a specific `section_id`.
 ### Retrieval Endpoint
 
 #### Retrieve Similar Chunks
-This is the main search endpoint. It takes a query embedding and returns the most similar text chunks for a user. It can be configured to search different namespaces and filter by section.
+Searches for similar chunks based on a query embedding.
 
 - **Endpoint:** `POST /retrieve/{user_id}`
-- **Description:** Searches for similar chunks based on a query embedding.
-- **Request Body Fields:**
-    - `query_embedding` (required): A 384-dimensional vector.
-    - `top_k` (optional, default: 5): The number of results to return.
-    - `index_namespace` (optional, default: `"profile"`): Either `"profile"` or `"resume_sections"`.
-    - `filter_by_section_ids` (optional): A list of `section_id` strings to restrict the search to.
-
-- **cURL Example 1 (Simple search in profile):**
+- **cURL Example (Filtered search):**
   ```bash
-  curl -X POST "http://localhost:8000/retrieve/user-123" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query_embedding": [0.01, -0.05, ..., 0.02],
-    "top_k": 3
-  }'
-  ```
-
-- **cURL Example 2 (Filtered search in resume sections):**
-  ```bash
-  curl -X POST "http://localhost:8000/retrieve/user-123" \
+  curl -X POST "http://localhost:8001/retrieve/user-123" \
   -H "Content-Type: application/json" \
   -d '{
     "query_embedding": [0.01, -0.05, ..., 0.02],
@@ -164,7 +186,6 @@ This is the main search endpoint. It takes a query embedding and returns the mos
     "filter_by_section_ids": ["exp-bullet-45", "proj-desc-12"]
   }'
   ```
-
 - **Success Response (200 OK):**
   ```json
   {
@@ -172,13 +193,13 @@ This is the main search endpoint. It takes a query embedding and returns the mos
       {
         "chunk_id": "some-uuid-...",
         "user_id": "user-123",
-        "index_namespace": "profile",
-        "section_id": null,
-        "source_type": "experience",
+        "index_namespace": "resume_sections",
+        "section_id": "exp-bullet-45",
+        "source_type": "user_edited",
         "source_id": "0",
-        "text": "Led a team of five engineers in the development of a cloud-native SaaS platform...",
-        "score": 0.897,
-        "created_at": "2023-10-27T10:00:00Z"
+        "text": "Engineered a real-time data processing pipeline using Kafka and Flink...",
+        "score": 0.934,
+        "created_at": "2023-10-28T10:00:00Z"
       }
     ]
   }
@@ -189,23 +210,23 @@ This is the main search endpoint. It takes a query embedding and returns the mos
 - `POST /embed`: Generates a normalized embedding for any given text.
 - `GET /health`: A simple health check endpoint.
 
-## Architectural Considerations & Limitations
+## Architectural Considerations
 
 ### Concurrency and Scalability
-The current implementation uses a global Python dictionary to hold the in-memory FAISS indices. This design is simple and very fast for a single process.
-
-**CRITICAL:** This means the service **must be deployed as a single-worker process**. Running it with multiple workers (e.g., `uvicorn app:app --workers 4`) will lead to inconsistent state, as each worker would have its own separate, out-of-sync copy of the indices.
-
-For scaling to multiple workers or nodes, the in-memory state would need to be externalized to a dedicated vector database like **Qdrant, Weaviate, or Pinecone**.
+The current implementation uses a global Python dictionary (`user_indices`) to hold the in-memory FAISS indices. This design is simple and very fast for a single process.
+**CRITICAL:** This means the service **must be deployed as a single-worker process**. Running it with multiple workers (e.g., `uvicorn app:app --workers 4`) will lead to inconsistent state, as each worker would have its own separate, out-of-sync copy of the indices. For scaling, the in-memory state would need to be externalized to a dedicated vector database (e.g., Qdrant, Weaviate).
 
 ### Data Consistency
-Consistency between the SQLite database and the in-memory FAISS index is maintained by rebuilding the FAISS index from the database on any write operation (e.g., indexing a section). This is a simple and robust strategy that avoids the complexity of surgical updates to the FAISS index and prevents state drift.
+Consistency between the SQLite database and the in-memory FAISS index is maintained by **rebuilding the relevant FAISS index from the database on any write operation**. This is a simple and robust strategy that avoids the complexity of surgical updates to the FAISS index and prevents state drift.
 
 ## Running Tests
 To ensure the quality and correctness of the service, you can run the test suite.
 
 ```bash
-pip install -r requirements.txt # Ensure test dependencies are installed
+# Ensure test dependencies are installed from requirements.txt
+pip install -r requirements.txt
+
+# Run tests
 pytest
 ```
 
@@ -220,5 +241,6 @@ pytest
 ├── faiss_index.py        # In-memory FAISS index management
 ├── model.py              # Sentence Transformer model loading and embedding generation
 ├── schemas.py            # Pydantic models for API request/response validation
-└── requirements.txt      # Python package dependencies
+├── requirements.txt      # Python package dependencies
+└── embeddings.db         # (Generated at runtime) SQLite database file
 ```
