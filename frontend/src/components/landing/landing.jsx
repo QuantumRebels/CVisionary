@@ -29,7 +29,7 @@ function Landing() {
     <>
       <Navbar isLoggedIn={isLoggedIn} />
       <Hero />
-      {/* ...other sections... */}
+      {/* Hero*/}
       <Features />
       {/* ...rest of your landing page... */}
     </>
