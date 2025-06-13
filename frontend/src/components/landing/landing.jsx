@@ -19,15 +19,20 @@
 
 import React from "react";
 import Navbar from "./Navbar";
+import Hero from "./hero";
 
-function App() {
+function Landing() {
+  // Replace with your actual authentication logic
+  const isLoggedIn = false;
+
   return (
     <>
-      <Navbar isLoggedIn={false} />
-      {/* Your landing content here */}
+      <Navbar isLoggedIn={isLoggedIn} />
+      <Hero />
+      {/* ...rest of your landing page... */}
     </>
   );
 }
 
-export default App;
+export default Landing;
 
