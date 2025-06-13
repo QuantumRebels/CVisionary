@@ -1,107 +1,102 @@
+# app.py
+
 import os
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+import httpx
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from model_inference import ModelInference
 from feature_extractor import extract_required_keywords, identify_missing_keywords
-from suggestion_client import SuggestionClient
-from schemas import ScoreRequest, ScoreResponse
+from suggestion_client import generate_suggestions
+from schemas import ScoreRequest, ScoreResponse, SuggestionRequest, SuggestionResponse, HealthResponse
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
 logger = logging.getLogger(__name__)
 
-# Global variables for model and suggestion client
-model_inference = None
-suggestion_client = None
+# --- App State and Lifespan ---
+app_state = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    global model_inference, suggestion_client
+    # Startup: Create a shared httpx client and load the ML model
+    app_state["http_client"] = httpx.AsyncClient(timeout=30.0)
     
-    logger.info("Loading MiniLM model...")
+    logger.info("Initializing scoring model...")
     model_inference = ModelInference()
     model_inference.load_model()
-    logger.info("MiniLM model loaded successfully")
-    
-    # Initialize suggestion client
-    suggestion_client = SuggestionClient()
-    logger.info("Suggestion client initialized")
+    app_state["model_inference"] = model_inference
+    logger.info("Scoring Service started up successfully.")
     
     yield
     
-    # Shutdown
-    logger.info("Shutting down...")
+    # Shutdown: Close the client
+    await app_state["http_client"].aclose()
+    logger.info("Scoring Service shut down.")
 
 app = FastAPI(
     title="CVisionary ATS Scoring Service",
-    description="AI-powered resume scoring and suggestions service",
-    version="1.0.0",
+    description="Scores a resume against a job description and provides improvement suggestions.",
+    version="1.2.0", # Version bump for new model logic
     lifespan=lifespan
 )
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-@app.get("/health")
+# --- Dependencies ---
+def get_http_client() -> httpx.AsyncClient:
+    return app_state["http_client"]
+
+def get_model_inference() -> ModelInference:
+    return app_state["model_inference"]
+
+# --- API Endpoints ---
+@app.get("/health", response_model=HealthResponse)
 async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy", "service": "ats-scoring-service"}
+    return {"status": "healthy", "service": "scoring-service"}
 
 @app.post("/score", response_model=ScoreResponse)
-async def score_resume(request: ScoreRequest):
+async def score_resume(
+    request: ScoreRequest,
+    model: ModelInference = Depends(get_model_inference)
+):
     """
-    Score a resume against a job description and provide suggestions
+    Scores a resume against a job description by analyzing semantic similarity and keywords.
     """
     try:
-        # Extract required skills from job description
+        # 1. Compute Semantic Match Score using the specialized local model
+        match_score = model.compute_match_score(request.job_description, request.resume_text)
+        
+        # 2. Perform Keyword Analysis
         required_keywords = extract_required_keywords(request.job_description)
-        logger.info(f"Required keywords extracted: {required_keywords}")
-        
-        # Generate embeddings for both texts
-        jd_embedding = model_inference.embed_text(request.job_description)
-        resume_embedding = model_inference.embed_text(request.resume_text)
-        
-        # Compute match score
-        match_score = model_inference.compute_match_score(jd_embedding, resume_embedding)
-        logger.info(f"Match score computed: {match_score}")
-        
-        # Identify missing keywords
         missing_keywords = identify_missing_keywords(required_keywords, request.resume_text)
-        logger.info(f"Missing keywords: {missing_keywords}")
         
-        # Generate suggestions if score is below threshold and there are missing skills
-        match_threshold = float(os.getenv("MATCH_THRESHOLD", "0.7"))
-        suggestions = []
-        
-        if match_score < match_threshold and missing_keywords:
-            try:
-                suggestions = await suggestion_client.generate_suggestions(missing_keywords)
-                logger.info(f"Generated {len(suggestions)} suggestions")
-            except Exception as e:
-                logger.error(f"Failed to generate suggestions: {str(e)}")
-                # Continue without suggestions rather than failing the entire request
-                suggestions = []
+        logger.info(f"Scoring complete. Score: {match_score:.2f}, Missing Keywords: {len(missing_keywords)}")
         
         return ScoreResponse(
             match_score=round(match_score, 3),
-            missing_keywords=missing_keywords,
-            suggestions=suggestions
+            missing_keywords=missing_keywords
         )
-        
     except Exception as e:
-        logger.error(f"Error processing request: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        logger.error(f"Error during scoring process: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred during scoring.")
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8003)
+@app.post("/suggest", response_model=SuggestionResponse)
+async def get_suggestions(
+    request: SuggestionRequest,
+    client: httpx.AsyncClient = Depends(get_http_client)
+):
+    """
+    Generates actionable suggestions based on a list of missing keywords.
+    """
+    try:
+        if not request.missing_keywords:
+            return SuggestionResponse(suggestions=[])
+            
+        suggestions = await generate_suggestions(client, request.missing_keywords)
+        
+        return SuggestionResponse(suggestions=suggestions)
+    except Exception as e:
+        logger.error(f"Error during suggestion generation: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred while generating suggestions.")
