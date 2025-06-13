@@ -20,15 +20,17 @@
 import React from "react";
 import Navbar from "./Navbar";
 import Hero from "./hero";
+import Features from "./features";
 
 function Landing() {
-  // Replace with your actual authentication logic
   const isLoggedIn = false;
 
   return (
     <>
       <Navbar isLoggedIn={isLoggedIn} />
       <Hero />
+      {/* ...other sections... */}
+      <Features />
       {/* ...rest of your landing page... */}
     </>
   );
