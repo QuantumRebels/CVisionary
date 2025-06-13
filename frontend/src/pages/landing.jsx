@@ -1,12 +1,19 @@
-import { React}  from "react";
+import React from "react";
+import Navbar from "@/components/landing/Navbar";
+import Hero from "@/components/landing/Hero";
+import Features from "@/components/landing/Features";
 
-const landing = () => {
+const Landing = () => {
   return (
-    <div className="app">
-      <h1 className="text-red-600 text-6xl font-bold">Welcome to Landing Page</h1>
-      <p className="text-3xl text-black font-semibold mt-4">We are currently under construction</p>
+    <div className="bg-[#13132a] min-h-screen">
+      <Navbar isLoggedIn={false} />
+      <div className="pt-20"> {/* Add top padding to prevent overlap */}
+        <Hero />
+        <Features />
+        {/* Add more sections as needed */}
+      </div>
     </div>
   );
-}
+};
 
-export default landing ;
+export default Landing;

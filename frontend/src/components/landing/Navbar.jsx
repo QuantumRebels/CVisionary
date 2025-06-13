@@ -3,11 +3,11 @@ import { Diamond } from "lucide-react";
 
 function Navbar({ isLoggedIn }) {
   return (
-    <nav className="bg-[#13132a] px-8 py-4 flex items-center justify-between border-b border-[#23233a]">
+    <nav className="w-full bg-[#13132a] px-8 py-4 flex items-center justify-between border-b border-[#23233a] fixed top-0 left-0 z-50">
       {/* Logo */}
       <div className="flex items-center space-x-2">
         <Diamond className="w-5 h-5 text-white" />
-        <span className="font-semibold text-white text-lg">CVisonary</span>
+        <span className="font-semibold text-white text-lg">CVisionary</span>
       </div>
       {/* Navigation Buttons */}
       <div className="flex items-center space-x-6">

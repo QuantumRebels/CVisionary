@@ -26,13 +26,12 @@ function Landing() {
   const isLoggedIn = false;
 
   return (
-    <>
+    <div className="bg-[#13132a] min-h-screen">
       <Navbar isLoggedIn={isLoggedIn} />
       <Hero />
-      {/* Hero*/}
       <Features />
-      {/* ...rest of your landing page... */}
-    </>
+      {/* ...other sections... */}
+    </div>
   );
 }
 
