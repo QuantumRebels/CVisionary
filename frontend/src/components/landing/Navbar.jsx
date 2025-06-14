@@ -56,7 +56,7 @@ function Navbar({ isLoggedIn, darkMode, setDarkMode }) {
             <a href="/builder" className={darkMode ? "text-sm font-medium text-white hover:text-blue-400" : "text-sm font-medium text-gray-800 hover:text-blue-600"}>
               Resume Builder
             </a>
-            <a href="/checker" className={darkMode ? "text-sm font-medium text-white hover:text-blue-400" : "text-sm font-medium text-gray-800 hover:text-blue-600"}>
+            <a href="/resume-checker" className={darkMode ? "text-sm font-medium text-white hover:text-blue-400" : "text-sm font-medium text-gray-800 hover:text-blue-600"}>
               Resume Checker
             </a>
           </>

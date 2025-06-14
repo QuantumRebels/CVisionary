@@ -19,7 +19,7 @@ function App() {
         <Route path="/register" element = {<Register/>} />
         <Route path="/dashboard" element = {<Dashboard/>} />
         <Route path="/resume_builder" element = {<Resume_builder/>} />
-        <Route path="/resume_checker" element ={ <Resume_checker/>} />
+        <Route path="/resume-checker" element ={ <Resume_checker/>} />
 
     </Routes>
   )
