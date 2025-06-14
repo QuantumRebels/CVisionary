@@ -1,8 +1,36 @@
-
-import LoginImage from "../../assets/images/login.jpg"
+import LoginImage from "../../assets/images/login.jpg";
 import React from "react";
+import { useNavigate } from "react-router-dom";
+import auth, { githubProvider, googleProvider, signInWithPopup } from "../../firebase";
 
 const Login = () => {
+  const navigate = useNavigate();
+
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      console.log("Google login successful: ", result.user);
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Google login error: ", error.message);
+    }
+  };
+
+  const handleGithubSignUp = async () => {
+    try {
+      const result = await signInWithPopup(auth, githubProvider);
+      console.log("GitHub login successful: ", result.user);
+      navigate("/dashboard");
+    } catch (error) {
+      if (error.code === "auth/account-exists-with-different-credential") {
+        alert("An account already exists with a different login method (like Google). Please use that to log in.");
+      } else {
+        console.error("GitHub login error:", error.message);
+        alert("GitHub login failed. Please try again.");
+      }
+    }
+  }; // ←✅ This closing brace was missing in your original code
+
   return (
     <div className="min-h-screen bg-[#0f0f1c] flex items-center justify-center px-4">
       <div className="bg-[#1a1a2e] text-white rounded-2xl shadow-lg flex flex-col md:flex-row overflow-hidden w-full max-w-4xl">
@@ -48,10 +76,16 @@ const Login = () => {
           </div>
 
           <div className="flex gap-4">
-            <button className="flex-1 bg-white text-black py-2 rounded-md hover:opacity-90 transition duration-300 font-medium">
+            <button
+              onClick={handleGithubSignUp}
+              className="flex-1 bg-white text-black py-2 rounded-md hover:opacity-90 transition duration-300 font-medium"
+            >
               Login with GitHub
             </button>
-            <button className="flex-1 bg-blue-700 text-white py-2 rounded-md hover:bg-blue-800 transition duration-300 font-medium">
+            <button
+              onClick={handleGoogleLogin}
+              className="flex-1 bg-blue-700 text-white py-2 rounded-md hover:bg-blue-800 transition duration-300 font-medium"
+            >
               Login with Google
             </button>
           </div>
@@ -64,10 +98,10 @@ const Login = () => {
           </p>
         </div>
 
-        {/* Right Image Section (Optional for Branding/Visual) */}
+        {/* Right Image Section */}
         <div className="hidden md:flex items-center justify-center bg-[#202030] w-full md:w-1/2">
           <img
-            src={LoginImage} // Replace with your branding asset
+            src={LoginImage}
             alt="CVisionary Logo"
             className="object-cover w-full h-full max-w-md max-h-md rounded-r-2xl"
           />
