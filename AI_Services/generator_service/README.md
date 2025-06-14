@@ -22,26 +22,24 @@ The Generator Service is a backend component in a larger microservices ecosystem
 
 ```mermaid
 graph TD
-    subgraph "Upstream Services"
-        OrchestratorService[Orchestrator Agent Service]
-    end
+    Title["<strong>Generator Service Flow</strong>"]
+    style Title fill:#222,stroke:#333,stroke-width:2px,color:#fff
 
-    subgraph "This Service"
-        GeneratorService[Generator Service]
-    end
-    
-    subgraph "Downstream Services"
-        RetrievalService[Retrieval Service]
-        GoogleGeminiAPI[Google Gemini API]
-    end
+    Title --> Client["Upstream Client (e.g., Orchestrator)"]
 
-    OrchestratorService -- "1. POST /generate/{type} (user_id, job_description, ...)" --> GeneratorService
-    GeneratorService -- "2. POST /retrieve/{type} (gets context)" --> RetrievalService
-    RetrievalService -- "3. Returns relevant text chunks" --> GeneratorService
-    GeneratorService -- "4. Formats prompt with Jinja2" --> GeminiPrompt
-    GeminiPrompt -- "5. Invokes LLM" --> GoogleGeminiAPI
-    GoogleGeminiAPI -- "6. Returns structured JSON" --> GeneratorService
-    GeneratorService -- "7. Returns GenerateResponse to orchestrator" --> OrchestratorService
+    subgraph Service Interactions
+        Client -- "(1) POST /generate/... (user_id, job_desc)" --> GeneratorService["Generator Service (FastAPI Endpoint)"]
+        
+        %% It first gets context from the Retrieval Service
+        GeneratorService -- "(2) POST /retrieve/... to get context" --> RetrievalService["Downstream Retrieval Service"]
+        RetrievalService -- "(3) Returns relevant text chunks" --> GeneratorService
+        
+        %% Then it builds a prompt and calls the LLM
+        GeneratorService -- "(4) Builds prompt with context & Jinja2 template" --> GeminiAPI["Google Gemini API"]
+        GeminiAPI -- "(5) Returns generated JSON string" --> GeneratorService
+        
+        GeneratorService -- "(6) Validates JSON & returns GenerateResponse" --> Client
+    end
 ```
 
 ## 🔍 Core Concepts
