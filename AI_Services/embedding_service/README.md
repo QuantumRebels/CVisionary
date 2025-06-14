@@ -36,27 +36,35 @@ This service employs a hybrid storage model to balance persistence with high-spe
 
 ```mermaid
 graph TD
-    subgraph "Client"
-        A[API Client]
+    Title["<strong>Indexing Flow (POST /index/...)</strong>"]
+    style Title fill:#222,stroke:#333,stroke-width:2px,color:#fff
+
+    Title --> A[API Client]
+
+    subgraph Service Logic
+        A -- "(1) Indexing Request (e.g., new section text)" --> B[FastAPI Endpoint]
+        B -- "(2) Stores new chunks & embeddings in DB" --> D[(SQLite DB: embeddings.db)]
+        B -- "(3) Triggers index rebuild" --> C{In-Memory FAISS Index}
+        D -- "(4) Loads updated chunks for user" --> C
+        B -- "(5) Returns status response (e.g., {status: 'ok'})" --> A
     end
+```
 
-    subgraph "Embedding Service"
-        B[FastAPI Endpoints]
-        C{In-Memory FAISS Index}
-        D[(SQLite DB: embeddings.db)]
+```mermaid
+graph TD
+    Title["<strong>Retrieval Flow (POST /retrieve/...)</strong>"]
+    style Title fill:#222,stroke:#333,stroke-width:2px,color:#fff
+
+    Title --> A[API Client]
+
+    subgraph Service Logic
+        A -- "(1) Retrieval Request (with query embedding)" --> B[FastAPI Endpoint]
+        B -- "(2) Performs fast search with query vector" --> C{In-Memory FAISS Index}
+        C -- "(3) Returns relevant chunk_ids & scores" --> B
+        B -- "(4) Fetches full chunk details by ID" --> D[(SQLite DB: embeddings.db)]
+        D -- "(5) Returns full text & metadata" --> B
+        B -- "(6) Returns complete response (list of ChunkItems)" --> A
     end
-
-    A -- "Indexing Request (POST /index/...)" --> B
-    B -- "1. Stores chunks & embeddings" --> D
-    B -- "2. Rebuilds relevant index from DB" --> C
-    D -- "Loads chunks for user/namespace" --> C
-
-    A -- "Retrieval Request (POST /retrieve/...)" --> B
-    B -- "1. Fast search for chunk IDs" --> C
-    C -- "Returns chunk_ids & scores" --> B
-    B -- "2. Fetches full chunk data from DB" --> D
-    D -- "Returns chunk details" --> B
-    B -- "Returns complete response to client" --> A
 ```
 
 ### 1. Hybrid Storage Model
