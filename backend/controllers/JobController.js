@@ -1,4 +1,4 @@
-import Job from "../models/job"
+import Job from "../models/job.js"
 
 
 const postJob=async(req,res)=>{
@@ -46,7 +46,7 @@ const getAllJobs =async(req,res)=>{
     }
 }
 
-export default {
+export {
 
     postJob,
     getAllJobs

@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import ResumeRouter from "./routes/ResumeRoutes.js";
 import ReviewsRouter from "./routes/Reviews.js";
 import JobRouter from "./routes/JobRoutes.js";
+import ScrapperRouter from "./routes/SocialConnectRoutes.js";
 
 dotenv.config();
 
@@ -21,6 +22,8 @@ app.use("/auth", authRoutes)
 app.use("/resume", ResumeRouter);
 app.use("/review",ReviewsRouter)
 app.use("/jobs",JobRouter)
+
+app.use("/Scrapper",ScrapperRouter)
 
 app.listen(PORT, () => {
   console.log(`Server is running successfully on ${PORT}`);

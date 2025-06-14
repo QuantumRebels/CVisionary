@@ -177,4 +177,4 @@ const getResumes=async(req,res)=>{
   }
 }
 
-export default {buildResume,getResumes};
+export {buildResume,getResumes};
