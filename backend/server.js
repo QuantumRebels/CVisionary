@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";  
 
 import connectToDB from "./db/db.js";
-import authRoutes from "./routes/UserRoutes.js";
+import UserRouter from "./routes/UserRoutes.js";
 import cookieParser from 'cookie-parser';
 import ResumeRouter from "./routes/ResumeRoutes.js";
 import ReviewsRouter from "./routes/Reviews.js";
@@ -18,12 +18,18 @@ app.use(cookieParser());
 app.use(cors({
   origin: "*",
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 }));
 
 const PORT = process.env.PORT;
 
 connectToDB();
-app.use("/auth", authRoutes)
+app.get('/', (req, res) => {
+  res.send('Hello World!!!!')
+})
+
+app.use("/auth", UserRouter)
 app.use("/resume", ResumeRouter);
 app.use("/review",ReviewsRouter)
 app.use("/jobs",JobRouter)

@@ -6,6 +6,8 @@ import auth, {
   githubProvider,
   signInWithPopup,
 } from "../../firebase"; // adjust path if needed
+import axios from "axios";
+
 
 const Register = () => {
   const navigate = useNavigate();
@@ -39,10 +41,21 @@ const Register = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form Data:", { name, email, password });
-    // Add your sign-up logic here using Firebase or any backend
+    console.log("Form Data:", { username,useremail,userpassword });
+    try {
+      const response=await axios.post(`${import.meta.env.VITE_DEV_URL}auth/register`,{username,useremail,userpassword})
+      
+      if(response.data.success){
+        localStorage.setItem("tokenCV", response.data.accessToken);
+        console.log("Registration successful:", response.data.message);
+        navigate("/dashboard");
+      } 
+    } catch (error) {
+      console.error("Registration error:", error);
+      alert("Registration failed. Please try again.");
+    }
   };
 
   return (
