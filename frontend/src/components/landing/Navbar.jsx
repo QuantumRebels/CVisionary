@@ -1,8 +1,25 @@
 import React from "react";
 import { Sparkles, Moon, Sun } from "lucide-react";
 import { motion } from "framer-motion";
+import { getAuth, signOut } from "firebase/auth";
 
-function Navbar({ isLoggedIn, darkMode, setDarkMode }) {
+function Navbar({ isLoggedIn, darkMode, setDarkMode, }) {
+
+
+  const handlelogout = async () => {
+    try {
+      const auth = getAuth();
+
+      await signOut(auth);
+      console.log("User logged out successfully");
+      window.location.href = "/"; // Redirect to home page after logout
+
+
+    }
+    catch (error) {
+      console.log("Error is logging out : ", error.message);
+    }
+  }
   return (
     <nav
       className={`w-full px-8 py-4 flex items-center justify-between border-b fixed top-0 left-0 z-50
@@ -59,6 +76,16 @@ function Navbar({ isLoggedIn, darkMode, setDarkMode }) {
             <a href="/resume-checker" className={darkMode ? "text-sm font-medium text-white hover:text-blue-400" : "text-sm font-medium text-gray-800 hover:text-blue-600"}>
               Resume Checker
             </a>
+            <button
+              onClick={handlelogout}
+              className={
+                darkMode
+                  ? "bg-[#23233a] hover:bg-[#35355c] text-white px-5 py-2 rounded-md text-sm font-medium transition-colors"
+                  : "bg-gray-100 hover:bg-red-100 text-red-600 px-5 py-2 rounded-md text-sm font-medium transition-colors border border-red-300"
+              }
+            >
+              Logout
+            </button>
           </>
         )}
       </div>
