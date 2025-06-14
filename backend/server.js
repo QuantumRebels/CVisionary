@@ -6,6 +6,7 @@ import authRoutes from "./routes/UserRoutes.js";
 import cookieParser from 'cookie-parser';
 import ResumeRouter from "./routes/ResumeRoutes.js";
 import ReviewsRouter from "./routes/Reviews.js";
+import JobRouter from "./routes/JobRoutes.js";
 
 dotenv.config();
 
@@ -19,6 +20,7 @@ connectToDB();
 app.use("/auth", authRoutes)
 app.use("/resume", ResumeRouter);
 app.use("/review",ReviewsRouter)
+app.use("/jobs",JobRouter)
 
 app.listen(PORT, () => {
   console.log(`Server is running successfully on ${PORT}`);
