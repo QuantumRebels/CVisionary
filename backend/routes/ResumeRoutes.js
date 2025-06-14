@@ -1,6 +1,6 @@
 
 import { Router } from 'express';
-import buildResume from '../controllers/ResumeController.js';
+import {buildResume ,getResumes}from '../controllers/ResumeController.js';
 
 const ResumeRouter=Router();
 

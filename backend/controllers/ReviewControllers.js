@@ -1,4 +1,4 @@
-import Review from "../models/Reviews";
+import Review from "../models/Reviews.js";
 
 const writeReview=async(req,res)=>{
     const {userId , UserName, reviewText} = req.body;
@@ -45,4 +45,4 @@ const getReviews=async(req,res)=>{
     }
 }
 
-export default {writeReview, getReviews};
+export  {writeReview, getReviews};
