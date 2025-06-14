@@ -19,33 +19,32 @@ The Orchestrator Service is the central coordinator in a microservices ecosystem
 
 ```mermaid
 graph TD
-    subgraph "User's Browser"
-        User
+    Title["<strong>Orchestrator Service Flow (Agent Logic)</strong>"]
+    style Title fill:#222,stroke:#333,stroke-width:2px,color:#fff
+
+    Title --> UserClient["User Client"]
+
+    subgraph Orchestrator Service
+        UserClient -- "(1) POST /v1/chat (user_message)" --> AgentReasoning{Agent Reasoning Loop}
+        
+        AgentReasoning -- "(2) Sends prompt to LLM" --> GeminiAPI["Google Gemini API"]
+        GeminiAPI -- "(3) LLM returns a decision" --> AgentReasoning
+
+        AgentReasoning -- "(4a) DECISION: Use a tool" --> ToolExecution["Execute Chosen Tool"]
+        
+        subgraph "Available Tools"
+            ToolExecution --> Redis["Redis (get/update state)"]
+            ToolExecution --> RetrievalService["Retrieval Service"]
+            ToolExecution --> GeneratorService["Generator Service"]
+        end
+        
+        %% The crucial loop back to continue the cycle
+        ToolExecution -- "(5) Tool result is fed back for next step" --> AgentReasoning
+        
+        %% The exit condition of the loop
+        AgentReasoning -- "(4b) DECISION: Task is complete" --> FinalResponse["Formulate Final Response"]
+        FinalResponse -- "(6) Returns ChatResponse to user" --> UserClient
     end
-
-    subgraph "Cloud Infrastructure"
-        OrchestratorService[Orchestrator Agent Service]
-        RetrievalService[Retrieval Service]
-        GeneratorService[Generator Service]
-        RedisCache[Redis Cache]
-        GoogleGeminiAPI[Google Gemini API]
-    end
-
-    User -- "1. POST /v1/chat (user_message)" --> OrchestratorService
-    OrchestratorService -- "2. Invokes Agent" --> GoogleGeminiAPI
-    GoogleGeminiAPI -- "3. Reasons & decides to use a tool" --> OrchestratorService
-
-    subgraph "4. Tool Execution"
-        OrchestratorService -- "Calls Tool" --> ToolExecution
-        ToolExecution -- "HTTP POST" --> RetrievalService
-        ToolExecution -- "HTTP POST" --> GeneratorService
-        ToolExecution -- "GET/SET" --> RedisCache
-    end
-
-    ToolExecution -- "5. Tool result" --> OrchestratorService
-    OrchestratorService -- "6. Sends result back to LLM" --> GoogleGeminiAPI
-    GoogleGeminiAPI -- "7. Generates final response" --> OrchestratorService
-    OrchestratorService -- "8. ChatResponse (agent_response, resume_state)" --> User
 ```
 
 ## 🔍 Core Concepts
