@@ -103,21 +103,27 @@ const ResumeSchema = new mongoose.Schema({
     {
       certification_name: {
         type: String,
+        default:null
       },
       issuing_organization: {
         type: String,
+        default:null
       },
       issue_date: {
         type: Date,
+        default:null
       },
       expiration_date: {
         type: Date,
+        default:null
       },
       credential_id: {
         type: String,
+        default:null
       },
       credential_url: {
         type: String,
+        default:null
       }
     }
   ],
