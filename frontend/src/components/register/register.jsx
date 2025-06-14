@@ -19,6 +19,8 @@ const Register = () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       console.log("Google Sign Up successful: ", result.user);
+        // ✅ Save name to localStorage
+      localStorage.setItem("userName", result.user.displayName);
       navigate("/dashboard");
     } catch (error) {
       console.error("Google Sign Up error: ", error.message);
@@ -29,6 +31,8 @@ const Register = () => {
     try {
       const result = await signInWithPopup(auth, githubProvider);
       console.log("GitHub Sign Up successful: ", result.user);
+        // ✅ Save name to localStorage
+      localStorage.setItem("userName", result.user.displayName);
       navigate("/dashboard");
     } catch (error) {
       console.error("GitHub Sign Up error: ", error.message);
