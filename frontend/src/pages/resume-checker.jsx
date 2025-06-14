@@ -1,12 +1,7 @@
 import { React}  from "react";
-
+import ResumeReviewer from "@/components/resume_checker/ResumeReviewer";
 const resume_checker = () => {
-  return (
-    <div className="app">
-      <h1 className="text-red-600 text-6xl font-bold">Welcome to Resume_checker Page</h1>
-      <p className="text-3xl text-black font-semibold mt-4">We are currently under construction</p>
-    </div>
-  );
-}
+  return <ResumeReviewer />;  
+};
 
 export default resume_checker ;
