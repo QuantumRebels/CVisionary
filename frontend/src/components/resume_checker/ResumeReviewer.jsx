@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import Navbar from "@/components/landing/Navbar";
 import { motion } from "framer-motion";
 import { FileText, UploadCloud, Search, BarChart2 } from "lucide-react";
+import Footer from "../dashboard/footer";
 
 const features = [
   {
@@ -178,6 +179,7 @@ function ResumeReviewer() {
           </div>
         </motion.section>
       </div>
+      <Footer />
     </div>
   );
 }
