@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import Thumbnail from "../../assets/images/thumbnail.jpg"; // Replace with your actual thumbnail image
+import Thumbnail from "../../assets/images/thumbnail.jpg";
 
-function HowItWorks() {
+function HowItWorks({ darkMode }) {
   const [playVideo, setPlayVideo] = useState(false);
 
-  // Animation variants for the step list
   const containerVariants = {
     hidden: {},
     visible: {
@@ -28,13 +27,13 @@ function HowItWorks() {
   };
 
   return (
-    <section className="mt-8 mb-8 px-6 md:px-12"  id="how-it-works">
+    <section className={`mt-8 mb-8 px-6 md:px-12`} id="how-it-works">
       <motion.h2
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         viewport={{ once: true, amount: 0.3 }}
-        className="text-4xl font-bold text-center mt-12 text-white mb-8"
+        className={`text-4xl font-bold text-center mt-12 mb-8 ${darkMode ? "text-white" : "text-gray-900"}`}
       >
         How It Works
       </motion.h2>
@@ -48,7 +47,7 @@ function HowItWorks() {
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.6 }}
         >
-          <p className="text-[#d6d6dd] mb-6 font-semibold text-lg">
+          <p className={`${darkMode ? "text-[#d6d6dd]" : "text-gray-700"} mb-6 font-semibold text-lg`}>
             Unlock your dream career in just three simple steps! Our intelligent platform does the heavy lifting so you can focus on what matters—landing your next big opportunity.
           </p>
 
@@ -65,8 +64,8 @@ function HowItWorks() {
                 className="flex items-start gap-2"
                 variants={stepVariants}
               >
-                <span className="text-[#b3b3c6] font-mono">H<sub>3</sub></span>
-                <span className="text-white">
+                <span className={`${darkMode ? "text-[#b3b3c6]" : "text-blue-700"} font-mono`}>H<sub>3</sub></span>
+                <span className={darkMode ? "text-white" : "text-gray-900"}>
                   <span className="font-semibold">{step}:</span>{" "}
                   {step === "Scrape"
                     ? "Instantly extract key skills and requirements from any job description."
@@ -87,11 +86,11 @@ function HowItWorks() {
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
-          <div className="w-full max-w-xl rounded-xl overflow-hidden shadow-lg ring-1 ring-[#2a2a45]">
+          <div className={`w-full max-w-xl rounded-xl overflow-hidden shadow-lg ring-1 ${darkMode ? "ring-[#2a2a45]" : "ring-blue-200"}`}>
             <div className="aspect-video w-full relative">
               {!playVideo ? (
                 <div
-                  className="w-full h-full bg-black cursor-pointer group"
+                  className={`w-full h-full cursor-pointer group ${darkMode ? "bg-black" : "bg-gray-100"}`}
                   onClick={() => setPlayVideo(true)}
                 >
                   <img
@@ -100,7 +99,9 @@ function HowItWorks() {
                     className="w-full h-full object-cover group-hover:brightness-90 transition-all duration-300"
                   />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="bg-white text-black px-4 py-2 rounded-full font-semibold shadow-md hover:scale-105 transition-all">
+                    <div className={`px-4 py-2 rounded-full font-semibold shadow-md hover:scale-105 transition-all
+                      ${darkMode ? "bg-white text-black" : "bg-blue-600 text-white"}
+                    `}>
                       ▶ Watch Demo
                     </div>
                   </div>
