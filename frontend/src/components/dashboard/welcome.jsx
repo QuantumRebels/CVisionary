@@ -1,13 +1,24 @@
 import React from "react";
 import { Plus, Wand2 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 const WelcomeSection = () => {
+
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    const storedName = localStorage.getItem("userName");
+    if (storedName) setUserName(storedName);
+  }, []);
+
+
+
   return (
     <section className="w-full bg-[#0d0b22] text-white py-16 px-4 md:px-10 mt-12">
       <div className="max-w-4xl mx-auto text-center">
         {/* Heading */}
         <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
-          Welcome to CVisionary
+          Welcome to CVisionary{userName && `, ${userName}`}
         </h1>
 
         {/* Subtext */}
