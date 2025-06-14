@@ -7,8 +7,8 @@ import axios from "axios";
 
 const Login = () => {
 
-  const [userEmail, setemail] = useState("")
-  const [ userPassword, setpassword] = useState("")
+  const [useremail, setemail] = useState("")
+  const [ userpassword, setpassword] = useState("")
   const [Error, setError] = useState("")
   const navigate = useNavigate();
 
@@ -43,19 +43,19 @@ const Login = () => {
 
   const handleSubmit = async(e) => {
     e.preventDefault();
-    console.log("Form Submitted")
+    console.log("Form Submitted", { useremail, userpassword });
     try {
-      const response=await axios.post(`${import.meta.env.VITE_DEV_URL}auth/login`,{userEmail, userPassword})
+      const response=await axios.post(`${import.meta.env.VITE_DEV_URL}auth/login`,{useremail, userpassword})
+      
       if(response.data.success){
         localStorage.setItem("tokenCV", response.data.accessToken);
         console.log("Login successful:", response.data.message);
-        // navigate("/dashboard");
+        navigate("/dashboard");
       }else{
         setError(response.data.message);
         console.error("Login failed:", response.data.message);
       }
-      setemail("");
-      setpassword("");
+      
     } catch (error) {
       console.error("Login error:", error);
       setError("An error occurred during login. Please try again.");
@@ -78,7 +78,7 @@ const Login = () => {
               <input
                 type="email"
                 placeholder="you@example.com"
-                value={userEmail}
+                value={useremail}
                 onChange={(e) => setemail(e.target.value)}
                 required
                 className="w-full px-4 py-2 bg-[#2a2a40] border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -89,7 +89,7 @@ const Login = () => {
               <input
                 type="password"
                 placeholder="••••••••"
-                value={userPassword}
+                value={userpassword}
                 onChange={(e) => setpassword(e.target.value)}
                 required
                 className="w-full px-4 py-2 bg-[#2a2a40] border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
