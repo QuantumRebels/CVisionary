@@ -7,7 +7,7 @@ const testimonials = [
   // ...existing testimonials...
   {
     name: "Ananya Sharma",
-    text: "ResumeCraft helped me personalize my resume perfectly for MNC roles. I got interview calls within days!",
+    text: "CVisionary helped me personalize my resume perfectly for MNC roles. I got interview calls within days!",
     img: "https://randomuser.me/api/portraits/women/21.jpg",
   },
   {
@@ -32,12 +32,12 @@ const testimonials = [
   },
   {
     name: "Rohit Verma",
-    text: "ResumeCraft made it so easy to align my resume with job requirements. Great tool!",
+    text: "CVisionary made it so easy to align my resume with job requirements. Great tool!",
     img: "https://randomuser.me/api/portraits/men/28.jpg",
   },
   {
     name: "Meera Iyer",
-    text: "I’m from a non-tech background and ResumeCraft still helped me stand out. Love it!",
+    text: "I’m from a non-tech background and CVisionary still helped me stand out. Love it!",
     img: "https://randomuser.me/api/portraits/women/78.jpg",
   },
   {
