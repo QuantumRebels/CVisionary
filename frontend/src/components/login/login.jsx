@@ -16,6 +16,8 @@ const Login = () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       console.log("Google login successful: ", result.user);
+      // ✅ Save name to localStorage
+      localStorage.setItem("userName", result.user.displayName);
       navigate("/dashboard");
     } catch (error) {
       console.error("Google login error: ", error.message);
@@ -26,6 +28,8 @@ const Login = () => {
     try {
       const result = await signInWithPopup(auth, githubProvider);
       console.log("GitHub login successful: ", result.user);
+      // ✅ Save name to localStorage
+      localStorage.setItem("userName", result.user.displayName);
       navigate("/dashboard");
     } catch (error) {
       if (error.code === "auth/account-exists-with-different-credential") {
