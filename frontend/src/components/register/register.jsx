@@ -1,8 +1,41 @@
 // src/pages/Register.jsx
 import RegisterImage from "../../assets/images/login.jpg"
 import React from "react";
+import auth, {
+  googleProvider,
+  githubProvider,
+  signInWithPopup,
+} from "../../firebase"; // adjust path if needed
+import { useNavigate } from "react-router-dom";
+
+
 
 const Register = () => {
+  const navigate = useNavigate();
+
+  const handleGoogleSignUp = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      navigate("/dashboard");
+      console.log("Google Sign Up successful: ", result.user);
+    }
+    catch (error) {
+      console.error("Google Sign Up error : ", error.message);
+    }
+  }
+
+  const handlewithGithubSignUp = async () => {
+    try {
+      const result = await signInWithPopup(auth, githubProvider);
+      navigate("/dashboard");
+      console.log("Github sign up suuccessfully ", result.user);
+
+    }
+    catch (error) {
+      console.error("Github Sign up error : ", error.message);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#0f0f1c] flex items-center justify-center px-4">
       <div className="bg-[#1a1a2e] text-white rounded-2xl shadow-lg flex flex-col md:flex-row overflow-hidden w-full max-w-4xl">
@@ -60,10 +93,10 @@ const Register = () => {
           </div>
 
           <div className="flex gap-4">
-            <button className="flex-1 bg-white text-black py-2 rounded-md hover:opacity-90 transition duration-300 font-medium">
+            <button onClick={handleGoogleSignUp} className="flex-1 bg-white text-black py-2 rounded-md hover:opacity-90 transition duration-300 font-medium">
               Sign Up with Google
             </button>
-            <button className="flex-1 bg-gray-900 text-white py-2 rounded-md hover:bg-gray-800 transition duration-300 font-medium">
+            <button  onClick={handlewithGithubSignUp} className="flex-1 bg-gray-900 text-white py-2 rounded-md hover:bg-gray-800 transition duration-300 font-medium">
               Sign Up with GitHub
             </button>
           </div>
@@ -76,7 +109,7 @@ const Register = () => {
           </p>
         </div>
 
-        
+
       </div>
     </div>
   );
