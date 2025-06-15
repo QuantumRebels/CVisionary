@@ -179,7 +179,7 @@ function ResumeReviewer() {
           </div>
         </motion.section>
       </div>
-      <Footer />
+      <Footer darkMode={darkMode} />
     </div>
   );
 }
