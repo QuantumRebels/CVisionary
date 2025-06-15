@@ -28,29 +28,31 @@ const resumes = [
   },
 ];
 
-const ResumeGallery = () => {
+const ResumeGallery = ({ darkMode }) => {
   return (
-    <section className="bg-[#0d0b22] text-white px-6 md:px-10 py-14">
-      <h2 className="text-2xl font-bold mb-6 text-white ml-20">Past Resumes</h2>
+    <section className={`${darkMode ? "bg-[#0d0b22] text-white" : "bg-white text-[#18181b]"} px-6 md:px-10 py-14`}>
+      <h2 className={`text-2xl font-bold mb-6 ml-20 ${darkMode ? "text-white" : "text-[#18181b]"}`}>Past Resumes</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10 max-w-7xl mx-auto mt-12">
         {resumes.map((resume, idx) => (
           <div
             key={idx}
-            className={`rounded-2xl bg-[#15132b] shadow-[0_0_15px_rgba(59,130,246,0.4)] p-4 transition-all duration-300 transform hover:scale-105`}
+            className={`rounded-2xl p-4 transition-all duration-300 transform hover:scale-105
+              ${darkMode
+                ? "bg-[#15132b] shadow-[0_0_15px_rgba(59,130,246,0.4)] border border-gray-600"
+                : "bg-gray-100 shadow-[0_0_15px_rgba(59,130,246,0.08)] border border-gray-200"
+              }
+            `}
           >
             <img
               src={resume.image}
               alt={resume.name}
-              className="rounded-xl mb-4 w-full object-cover h-96 border border-gray-600"
+              className={`rounded-xl mb-4 w-full object-cover h-96 border ${darkMode ? "border-gray-600" : "border-gray-200"}`}
             />
-            <div className={`font-semibold text-md mb-1`}>
-              {resume.name}
-            </div>
+            <div className={`font-semibold text-md mb-1 ${resume.textColor}`}>{resume.name}</div>
           </div>
         ))}
       </div>
     </section>
   );
 };
-
 export default ResumeGallery;
