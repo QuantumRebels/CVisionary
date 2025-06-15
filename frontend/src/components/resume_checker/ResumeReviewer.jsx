@@ -27,8 +27,7 @@ const dropVariants = {
   animate: { opacity: 1, y: 0, transition: { duration: 0.7 } },
 };
 
-function ResumeReviewer() {
-  const [darkMode, setDarkMode] = useState(true);
+function ResumeReviewer({ darkMode, setDarkMode }) { // <-- Accept as props
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState(null);
   const inputRef = useRef();
