@@ -1,7 +1,16 @@
-import { React}  from "react";
+import React, { useState } from "react";
 import ResumeReviewer from "@/components/resume_checker/ResumeReviewer";
-const resume_checker = () => {
-  return <ResumeReviewer />;  
+import { getInitialDarkMode, setDarkModePreference } from "@/utils/theme";
+
+const ResumeChecker = () => {
+  const [darkMode, setDarkMode] = useState(getInitialDarkMode());
+
+  const handleSetDarkMode = (value) => {
+    setDarkMode(value);
+    setDarkModePreference(value);
+  };
+
+  return <ResumeReviewer darkMode={darkMode} setDarkMode={handleSetDarkMode} />;
 };
 
-export default resume_checker ;
+export default ResumeChecker;

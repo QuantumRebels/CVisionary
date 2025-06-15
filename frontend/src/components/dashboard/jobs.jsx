@@ -34,21 +34,26 @@ const jobs = [
   },
 ];
 
-const JobApplications = () => {
+const JobApplications = ({ darkMode }) => {
   return (
-    <section className="bg-[#0d0b22] text-white px-6 md:px-10 py-14">
-      <h2 className="text-2xl font-bold mb-8 ml-4 ml-20">Job Applications</h2>
+    <section className={`${darkMode ? "bg-[#0d0b22] text-white" : "bg-white text-[#18181b]"} px-6 md:px-10 py-14`}>
+      <h2 className={`text-2xl font-bold mb-8 ml-20 ${darkMode ? "text-white" : "text-[#18181b]"}`}>Job Applications</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 max-w-7xl mx-auto">
         {jobs.map((job, idx) => (
           <div
             key={idx}
-            className={`rounded-2xl ${job.color} p-6 border border-gray-700 shadow-[0_0_10px_rgba(59,130,246,0.3)] transition-all duration-300 transform hover:scale-105`}
+            className={`rounded-2xl p-6 border shadow-[0_0_10px_rgba(59,130,246,0.3)] transition-all duration-300 transform hover:scale-105
+              ${darkMode
+                ? `${job.color} border-gray-700`
+                : "bg-gray-100 border-gray-200"
+              }
+            `}
           >
             <div className="flex items-center gap-2 text-lg font-semibold mb-2">
               <FaBriefcase className="text-blue-400" />
               {job.title}
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-300">
+            <div className={`flex items-center gap-2 text-sm ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
               <FaInfoCircle className="text-green-400" />
               Status: {job.status}
             </div>

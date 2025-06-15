@@ -28,21 +28,29 @@ const actions = [
   },
 ];
 
-const QuickActions = () => {
+const QuickActions = ({ darkMode }) => {
   return (
-    <section className="bg-[#0d0b22] text-white py-14 px-6 md:px-10">
+    <section className={`${darkMode ? "bg-[#0d0b22] text-white" : "bg-white text-[#18181b]"} py-14 px-6 md:px-10`}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
         {actions.map((action, index) => (
           <a key={index} href={action.link} className="no-underline">
             <div
-              className="bg-[#1a1735] border border-[#29244a] rounded-xl p-6 cursor-pointer
-              shadow-[0_0_20px_rgba(59,130,246,0.2)]
-              hover:shadow-[0_0_30px_rgba(59,130,246,0.5)]
-              hover:border-blue-500 transition-all duration-300"
+              className={`
+                rounded-xl p-6 cursor-pointer
+                shadow-[0_0_20px_rgba(59,130,246,0.2)]
+                hover:shadow-[0_0_30px_rgba(59,130,246,0.5)]
+                transition-all duration-300
+                ${darkMode
+                  ? "bg-[#1a1735] border border-[#29244a] hover:border-blue-500"
+                  : "bg-gray-100 border border-gray-200 hover:border-blue-400"
+                }
+              `}
             >
               <div className="mb-4">{action.icon}</div>
               <h3 className="text-lg font-semibold mb-2">{action.title}</h3>
-              <p className="text-sm text-gray-400 leading-snug">{action.desc}</p>
+              <p className={`text-sm leading-snug ${darkMode ? "text-gray-400" : "text-gray-600"} min-h-[72px]`}>
+                {action.desc}
+              </p>
             </div>
           </a>
         ))}
