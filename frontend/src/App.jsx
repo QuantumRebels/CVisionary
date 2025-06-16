@@ -11,6 +11,7 @@ import Register from "./pages/register"
 import Socials from "./pages/socials"
 import Social_Github from "./pages/socials-github.jsx"
 import Social_Linkedin from "./pages/socials-linkedln.jsx"
+import Jobs from "./pages/job.jsx"
 
 function App() {
  
@@ -26,6 +27,7 @@ function App() {
         <Route path="/socials" element = {<Socials/>} />
         <Route path="/socials/github" element = {<Social_Github/>} />
         <Route path="/socials/linkedin" element = {<Social_Linkedin/>} />
+        <Route path="/jobs" element = {<Jobs/>} />
 
     </Routes>
   )

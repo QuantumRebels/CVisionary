@@ -3,6 +3,7 @@ import Navbar from "@/components/landing/Navbar";
 import { useState } from "react";
 import { getInitialDarkMode, setDarkModePreference } from "@/utils/theme";
 import Social_Github from "../components/socials/socials-github";
+import Footer from "@/components/dashboard/footer";
 
 const Social_Github_Connect = () => {
 
@@ -18,6 +19,7 @@ const Social_Github_Connect = () => {
     <div className={`app ${darkMode ? "dark" : "light"}`}>
       <Navbar isLoggedIn={true}  darkMode={darkMode} setDarkMode={handleSetDarkMode}/>
       <Social_Github />
+       <Footer darkMode={darkMode} />
     
     </div>
   )
