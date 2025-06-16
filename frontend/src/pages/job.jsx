@@ -2,10 +2,10 @@ import React from "react";
 import Navbar from "@/components/landing/Navbar";
 import { useState } from "react";
 import { getInitialDarkMode, setDarkModePreference } from "@/utils/theme";
-import Social_Linkedln from "../components/socials/socials-linikedln"
+import JobApply from "@/components/job/job";
 import Footer from "@/components/dashboard/footer";
 
-const Social_Linkedin_Connect= () => {
+const Socials = () => {
 
   const [darkMode, setDarkMode] = useState(getInitialDarkMode());
 
@@ -14,15 +14,15 @@ const Social_Linkedin_Connect= () => {
     setDarkModePreference(value);
   };
 
+
   return (
     <div className={`app ${darkMode ? "dark" : "light"}`}>
       <Navbar isLoggedIn={true}  darkMode={darkMode} setDarkMode={handleSetDarkMode}/>
-
-      <Social_Linkedln darkMode={darkMode} />
-     <Footer darkMode={darkMode} />
-
+      <JobApply />
+      <Footer darkMode={darkMode} />
+    
     </div>
   )
 }
 
-export default Social_Linkedin_Connect;
+export default Socials;
