@@ -8,6 +8,9 @@ import Dashboard from './pages/dashboard.jsx'
 import Resume_builder from "./pages/resume-builder"
 import Resume_checker from "./pages/resume-checker"
 import Register from "./pages/register"
+import Socials from "./pages/socials"
+import Social_Github from "./pages/socials-github.jsx"
+import Social_Linkedin from "./pages/socials-linkedln.jsx"
 
 function App() {
  
@@ -20,6 +23,9 @@ function App() {
         <Route path="/dashboard" element = {<Dashboard/>} />
         <Route path="/resume-builder" element = {<Resume_builder/>} />
         <Route path="/resume-checker" element ={ <Resume_checker/>} />
+        <Route path="/socials" element = {<Socials/>} />
+        <Route path="/socials/github" element = {<Social_Github/>} />
+        <Route path="/socials/linkedin" element = {<Social_Linkedin/>} />
 
     </Routes>
   )
