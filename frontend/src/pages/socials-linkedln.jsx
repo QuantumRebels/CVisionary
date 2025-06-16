@@ -13,12 +13,10 @@ const Social_Linkedin_Connect= () => {
     setDarkModePreference(value);
   };
 
-
   return (
     <div className={`app ${darkMode ? "dark" : "light"}`}>
       <Navbar isLoggedIn={true}  darkMode={darkMode} setDarkMode={handleSetDarkMode}/>
-      <Social_Linkedln />
-    
+      <Social_Linkedln darkMode={darkMode} />
     </div>
   )
 }

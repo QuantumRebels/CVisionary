@@ -1,9 +1,8 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Dialog } from "@headlessui/react";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 
-const LinkedInUpload = () => {
+const LinkedInUpload = ({ darkMode }) => {
   const [file, setFile] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const fileInputRef = useRef(null);
@@ -14,6 +13,29 @@ const LinkedInUpload = () => {
     const storedName = localStorage.getItem("userName");
     if (storedName) setUserName(storedName);
   }, []);
+
+  // Theme classes
+  const bgClass = darkMode ? "bg-[#0a0a23]" : "bg-white";
+  const textClass = darkMode ? "text-white" : "text-gray-900";
+  const subTextClass = darkMode ? "text-gray-400" : "text-gray-600";
+  const borderClass = darkMode
+    ? "border-gray-600 hover:border-blue-500"
+    : "border-blue-300 hover:border-blue-500";
+  const btnBg = darkMode
+    ? "bg-[#1e1e40] text-white hover:bg-[#2a2a5c]"
+    : "bg-blue-100 text-blue-900 hover:bg-blue-200";
+  const analyzeBtn = darkMode
+    ? "bg-blue-600 hover:bg-blue-700 text-white"
+    : "bg-blue-500 hover:bg-blue-600 text-white";
+  const modalBg = darkMode
+    ? "bg-[#1E1B3A] text-white"
+    : "bg-white text-gray-900";
+  const modalTitle = darkMode
+    ? "text-blue-400"
+    : "text-blue-700";
+  const cardBorder = darkMode
+    ? "border-gray-600"
+    : "border-blue-200";
 
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
@@ -29,19 +51,16 @@ const LinkedInUpload = () => {
       alert("Please upload your LinkedIn PDF first.");
       return;
     }
-
-    // Simulate backend processing
-    console.log("Analyzing LinkedIn profile:", file.name);
     setIsOpen(true);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a23] text-white px-4">
+    <div className={`min-h-screen flex items-center justify-center ${bgClass} ${textClass} px-4 transition-colors duration-300`}>
       {/* Go to Dashboard Button */}
       <div className="absolute top-24 right-6">
         <button
           onClick={() => navigate("/dashboard")}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg"
+          className={`${analyzeBtn} font-semibold py-2 px-6 rounded-lg transition-colors duration-300`}
         >
           Go to Dashboard
         </button>
@@ -50,9 +69,9 @@ const LinkedInUpload = () => {
         <h1 className="text-2xl md:text-3xl font-bold mb-2 text-start leading-tight ">
           Hello  {userName && `, ${userName}`}  !! Upload Your LinkedIn PDF
         </h1>
-        <p className="mb-6 text-gray-400">Upload your LinkedIn PDF to extract your experience, education, and achievements.</p>
+        <p className={`mb-6 ${subTextClass}`}>Upload your LinkedIn PDF to extract your experience, education, and achievements.</p>
 
-        <div className="border-2 border-dashed border-gray-600 rounded-xl p-10 text-center hover:border-blue-500 transition-all duration-300">
+        <div className={`border-2 border-dashed rounded-xl p-10 text-center transition-all duration-300 ${borderClass}`}>
           <input
             type="file"
             accept=".pdf"
@@ -64,10 +83,10 @@ const LinkedInUpload = () => {
           <p className="text-lg font-semibold">
             {file ? `Uploaded: ${file.name}` : "Drag and drop or browse to upload"}
           </p>
-          <p className="text-sm text-gray-400">Supported format: PDF</p>
+          <p className={`text-sm ${subTextClass}`}>Supported format: PDF</p>
           <button
             onClick={() => fileInputRef.current.click()}
-            className="mt-4 px-5 py-2 bg-[#1e1e40] text-white font-medium rounded-lg hover:bg-[#2a2a5c] transition"
+            className={`mt-4 px-5 py-2 rounded-lg font-medium transition ${btnBg}`}
           >
             Browse Files
           </button>
@@ -76,7 +95,7 @@ const LinkedInUpload = () => {
         <div className="mt-6 text-right">
           <button
             onClick={handleAnalyze}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg"
+            className={`${analyzeBtn} font-semibold py-2 px-6 rounded-lg transition-colors duration-300`}
           >
             Analyze LinkedIn Scrap
           </button>
@@ -87,21 +106,21 @@ const LinkedInUpload = () => {
       <Dialog open={isOpen} onClose={() => setIsOpen(false)} className="relative z-50">
         <div className="fixed inset-0 bg-black/60" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto">
-          <Dialog.Panel className="bg-[#1E1B3A] text-white p-6 rounded-xl w-full max-w-2xl shadow-xl">
-            <Dialog.Title className="text-2xl font-bold mb-4">
+          <Dialog.Panel className={`${modalBg} p-6 rounded-xl w-full max-w-2xl shadow-xl`}>
+            <Dialog.Title className={`text-2xl font-bold mb-4 ${modalTitle}`}>
               LinkedIn Insights
             </Dialog.Title>
 
             <div className="space-y-4">
               <div>
-                <p className="font-semibold text-blue-400 mb-1">Bio:</p>
+                <p className={`font-semibold mb-1 ${modalTitle}`}>Bio:</p>
                 <p>
                   Enthusiastic Full Stack Developer with 2+ years of experience in building scalable web apps and a strong presence in open-source contributions.
                 </p>
               </div>
 
               <div>
-                <p className="font-semibold text-blue-400 mb-1">Experience:</p>
+                <p className={`font-semibold mb-1 ${modalTitle}`}>Experience:</p>
                 <ul className="list-disc ml-6 space-y-1">
                   <li>Software Developer Intern @ ABC Corp (Jan 2024 - Jun 2024)</li>
                   <li>Open Source Contributor @ GirlScript Summer of Code</li>
@@ -109,14 +128,14 @@ const LinkedInUpload = () => {
               </div>
 
               <div>
-                <p className="font-semibold text-blue-400 mb-1">Education:</p>
+                <p className={`font-semibold mb-1 ${modalTitle}`}>Education:</p>
                 <ul className="list-disc ml-6 space-y-1">
                   <li>B.Tech in Computer Science, IIIT Bhubaneswar (2022–2026)</li>
                 </ul>
               </div>
 
               <div>
-                <p className="font-semibold text-blue-400 mb-1">Achievements:</p>
+                <p className={`font-semibold mb-1 ${modalTitle}`}>Achievements:</p>
                 <ul className="list-disc ml-6 space-y-1">
                   <li>Winner – HackThisFall 2024</li>
                   <li>Top 5 finalist – Smart India Hackathon 2023</li>
@@ -126,7 +145,7 @@ const LinkedInUpload = () => {
 
             <button
               onClick={() => setIsOpen(false)}
-              className="mt-6 bg-blue-600 hover:bg-blue-700 w-full py-3 rounded-xl text-white font-semibold transition-transform transform hover:scale-105"
+              className={`${analyzeBtn} mt-6 w-full py-3 rounded-xl font-semibold transition-transform transform hover:scale-105`}
             >
               Close
             </button>
