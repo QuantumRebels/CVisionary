@@ -18,7 +18,8 @@ const Socials = () => {
   return (
     <div className={`app ${darkMode ? "dark" : "light"}`}>
       <Navbar isLoggedIn={true}  darkMode={darkMode} setDarkMode={handleSetDarkMode}/>
-      <SocialConnect />
+
+     <SocialConnect darkMode={darkMode} />
       <Footer darkMode={darkMode} />
     
     </div>
