@@ -16,9 +16,9 @@ const actions = [
   },
   {
     icon: <UploadCloud className="text-pink-500 w-6 h-6" />,
-    title: "Explore Resume Templates",
-    desc: "Browse and choose from a variety of professional resume templates.",
-    link: "/templates",
+    title: "Apply For Jobs",
+    desc: "Find and apply to jobs that match your skills and interests.",
+    link: "/jobs",
   },
   {
     icon: <BadgeCheck className="text-green-500 w-6 h-6" />,
