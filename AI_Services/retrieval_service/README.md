@@ -17,14 +17,24 @@ This service sits between a client (e.g., a Generation Service) and the Embeddin
 
 ```mermaid
 graph TD
-    Client[Client e.g., Generator Service] -->|1. POST /retrieve/full (user_id, job_desc)| RetrievalService[Retrieval Service]
-    subgraph "Retrieval Service Logic"
-        RetrievalService -->|2. POST /embed (job_desc)| EmbeddingService[Embedding Service]
-        EmbeddingService -->|3. Returns query_embedding| RetrievalService
-        RetrievalService -->|4. POST /retrieve/{user_id} (with embedding)| EmbeddingService
-        EmbeddingService -->|5. Returns relevant chunks| RetrievalService
+    Title["<strong>Retrieval Service Flow</strong>"]
+    style Title fill:#222,stroke:#333,stroke-width:2px,color:#fff
+
+    Title --> Client["Upstream Client (e.g., Generator Service)"]
+
+    subgraph Service Interactions
+        Client -- "(1) POST /retrieve/... (user_id, job_desc)" --> RetrievalService["Retrieval Service (FastAPI Endpoint)"]
+        
+        %% First call to Embedding Service to get the query vector
+        RetrievalService -- "(2) POST /embed (with job_desc)" --> EmbeddingService["Downstream Embedding Service"]
+        EmbeddingService -- "(3) Returns query_embedding" --> RetrievalService
+        
+        %% Second call to Embedding Service to get the chunks
+        RetrievalService -- "(4) POST /retrieve/{user_id} (with embedding)" --> EmbeddingService
+        EmbeddingService -- "(5) Returns relevant chunks" --> RetrievalService
+        
+        RetrievalService -- "(6) Returns RetrieveResponse to client" --> Client
     end
-    RetrievalService -->|6. Returns RetrieveResponse| Client
 ```
 
 ### 1. Abstraction Layer
