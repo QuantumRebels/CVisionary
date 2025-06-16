@@ -1,12 +1,16 @@
-import { React}  from "react";
+import React, { useState } from "react";
+import ResumeReviewer from "@/components/resume_checker/ResumeReviewer";
+import { getInitialDarkMode, setDarkModePreference } from "@/utils/theme";
 
-const resume_checker = () => {
-  return (
-    <div className="app">
-      <h1 className="text-red-600 text-6xl font-bold">Welcome to Resume_checker Page</h1>
-      <p className="text-3xl text-black font-semibold mt-4">We are currently under construction</p>
-    </div>
-  );
-}
+const ResumeChecker = () => {
+  const [darkMode, setDarkMode] = useState(getInitialDarkMode());
 
-export default resume_checker ;
+  const handleSetDarkMode = (value) => {
+    setDarkMode(value);
+    setDarkModePreference(value);
+  };
+
+  return <ResumeReviewer darkMode={darkMode} setDarkMode={handleSetDarkMode} />;
+};
+
+export default ResumeChecker;

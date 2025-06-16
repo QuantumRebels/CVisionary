@@ -33,20 +33,20 @@ const registerUser = async (req, res) => {
         userPassword: hashedPassword,
       })
 
-      const accessToken = jwt.sign({
-        username : checkuser.userName,
-        userId : checkuser._id,
-        useremail : checkuser.userEmail
-      } ,
-       process.env.JWT_SECRET, 
-       {expiresIn: '1d'}
-      );
+      // const accessToken = jwt.sign({
+      //   username : username,
+      //   userId :_id,
+      //   useremail : useremail
+      // } ,
+      //  process.env.JWT_SECRET, 
+      //  {expiresIn: '1d'}
+      // );
 
       if (newUser) {
         return res.status(201).json({
           success: true,
           message: "User registered successfully",
-          accessToken: accessToken
+          // accessToken: accessToken
         })
       }
     }
@@ -71,8 +71,10 @@ const registerUser = async (req, res) => {
 const loginController = async (req, res) => {
   try {
     try {
-      const { username, userpassword } = req.body;
-      const checkuser = await User.findOne({ userName: username });
+      const { useremail, userpassword } = req.body;
+      
+      const checkuser = await User.findOne({ userEmail: useremail });
+      
       if (!checkuser) {
         return res.status(404).json({
           success: false,

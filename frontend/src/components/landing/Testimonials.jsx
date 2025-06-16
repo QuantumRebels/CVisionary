@@ -4,9 +4,10 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
 const testimonials = [
+  // ...existing testimonials...
   {
     name: "Ananya Sharma",
-    text: "ResumeCraft helped me personalize my resume perfectly for MNC roles. I got interview calls within days!",
+    text: "CVisionary helped me personalize my resume perfectly for MNC roles. I got interview calls within days!",
     img: "https://randomuser.me/api/portraits/women/21.jpg",
   },
   {
@@ -31,12 +32,12 @@ const testimonials = [
   },
   {
     name: "Rohit Verma",
-    text: "ResumeCraft made it so easy to align my resume with job requirements. Great tool!",
+    text: "CVisionary made it so easy to align my resume with job requirements. Great tool!",
     img: "https://randomuser.me/api/portraits/men/28.jpg",
   },
   {
     name: "Meera Iyer",
-    text: "I’m from a non-tech background and ResumeCraft still helped me stand out. Love it!",
+    text: "I’m from a non-tech background and CVisionary still helped me stand out. Love it!",
     img: "https://randomuser.me/api/portraits/women/78.jpg",
   },
   {
@@ -51,7 +52,7 @@ const testimonials = [
   },
 ];
 
-function Testimonials() {
+function Testimonials({ darkMode }) {
   const [startIndex, setStartIndex] = useState(0);
   const visibleTestimonials = testimonials.slice(startIndex, startIndex + 3);
 
@@ -66,7 +67,7 @@ function Testimonials() {
   return (
     <section className="mt-16 px-4 md:px-12" id="testimonials">
       <motion.h2
-        className="text-3xl font-bold text-white mb-2 text-center"
+        className={`text-3xl font-bold mb-2 text-center ${darkMode ? "text-white" : "text-gray-900"}`}
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -74,7 +75,7 @@ function Testimonials() {
       >
         Testimonials
       </motion.h2>
-      <p className="text-[#c7c7de] text-center mb-8 max-w-2xl mx-auto">
+      <p className={`${darkMode ? "text-[#c7c7de]" : "text-gray-700"} text-center mb-8 max-w-2xl mx-auto`}>
         Hear from real users across India who’ve landed opportunities faster and more confidently with ResumeCraft.
       </p>
 
@@ -83,8 +84,12 @@ function Testimonials() {
           {visibleTestimonials.map((t, idx) => (
             <motion.div
               key={idx}
-              className="bg-[#18182f] border border-[#23233a] rounded-xl p-6 flex flex-col items-center text-center transition-all 
-                         hover:shadow-[0_0_20px_2px_rgba(99,102,241,0.4)] hover:scale-[1.03]"
+              className={`border rounded-xl p-6 flex flex-col items-center text-center transition-all hover:scale-[1.03]
+                ${darkMode
+                  ? "bg-[#18182f] border-[#23233a] hover:shadow-[0_0_20px_2px_rgba(99,102,241,0.4)]"
+                  : "bg-white border-blue-100 hover:shadow-[0_0_20px_2px_rgba(59,130,246,0.15)]"
+                }
+              `}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: idx * 0.2 }}
@@ -93,22 +98,38 @@ function Testimonials() {
               <img
                 src={t.img}
                 alt={t.name}
-                className="w-20 h-20 rounded-full mb-4 object-cover border-2 border-indigo-500"
+                className={`w-20 h-20 rounded-full mb-4 object-cover border-2 ${darkMode ? "border-indigo-500" : "border-blue-400"}`}
               />
-              <p className="text-[#dcdcf0] mb-4 text-sm leading-relaxed">"{t.text}"</p>
-              <span className="text-[#b3b3c6] font-semibold">{t.name}</span>
+              <p className={`${darkMode ? "text-[#dcdcf0]" : "text-gray-700"} mb-4 text-sm leading-relaxed`}>"{t.text}"</p>
+              <span className={`${darkMode ? "text-[#b3b3c6]" : "text-blue-700"} font-semibold`}>{t.name}</span>
             </motion.div>
           ))}
         </div>
 
         {/* Arrows */}
         <div className="absolute top-1/2 left-0 transform -translate-y-1/2 z-10">
-          <button onClick={handlePrev} className="bg-[#1f1f3a] hover:bg-[#2a2a4d] text-white p-2 rounded-full shadow-md">
+          <button
+            onClick={handlePrev}
+            className={`p-2 rounded-full shadow-md
+              ${darkMode
+                ? "bg-[#1f1f3a] hover:bg-[#2a2a4d] text-white"
+                : "bg-blue-100 hover:bg-blue-200 text-blue-700"
+              }
+            `}
+          >
             <ChevronLeft />
           </button>
         </div>
         <div className="absolute top-1/2 right-0 transform -translate-y-1/2 z-10">
-          <button onClick={handleNext} className="bg-[#1f1f3a] hover:bg-[#2a2a4d] text-white p-2 rounded-full shadow-md">
+          <button
+            onClick={handleNext}
+            className={`p-2 rounded-full shadow-md
+              ${darkMode
+                ? "bg-[#1f1f3a] hover:bg-[#2a2a4d] text-white"
+                : "bg-blue-100 hover:bg-blue-200 text-blue-700"
+              }
+            `}
+          >
             <ChevronRight />
           </button>
         </div>
