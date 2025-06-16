@@ -12,7 +12,7 @@ const actions = [
     icon: <Linkedin className="text-blue-500 w-6 h-6" />,
     title: "Connect To Your Socials",
     desc: "Generate your resume using your Github Profile or upload your LinkedIn profile.",
-    link: "/social-connect",
+    link: "/socials",
   },
   {
     icon: <UploadCloud className="text-pink-500 w-6 h-6" />,
