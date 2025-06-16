@@ -1,27 +1,41 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog } from "@headlessui/react";
 import { FaGithub } from "react-icons/fa";
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-
-const GithubConnect = () => {
+const GithubConnect = ({ darkMode }) => {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [showWarning, setShowWarning] = useState(false); // ⬅️ NEW
+  const [showWarning, setShowWarning] = useState(false);
 
   const navigate = useNavigate();
- const [userName, setUserName] = useState("");
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
     if (storedName) setUserName(storedName);
-  }, []); 
+  }, []);
+
+  // Theme classes
+  const bgClass = darkMode ? "bg-[#0a0a23]" : "bg-white";
+  const textClass = darkMode ? "text-white" : "text-gray-900";
+  const inputBg = darkMode ? "bg-[#1E1B3A] text-white" : "bg-blue-100 text-gray-900";
+  const inputFocus = darkMode
+    ? "focus:ring-blue-500"
+    : "focus:ring-blue-600";
+  const btnBg = darkMode
+    ? "bg-blue-600 hover:bg-blue-700 text-white"
+    : "bg-blue-500 hover:bg-blue-600 text-white";
+  const btnShadow = darkMode
+    ? "shadow-[0_0_10px_rgba(99,102,241,0.4)] hover:shadow-[0_0_20px_rgba(99,102,241,0.8)]"
+    : "shadow-[0_0_10px_rgba(59,130,246,0.15)] hover:shadow-[0_0_20px_rgba(30,41,59,0.45)]";
+  const modalBg = darkMode ? "bg-[#1E1B3A] text-white" : "bg-white text-gray-900";
+  const modalCard = darkMode ? "bg-[#2a2752]" : "bg-blue-100";
+  const modalTag = darkMode ? "bg-[#3a3673] text-white" : "bg-blue-200 text-blue-900";
 
   const handleScrape = async () => {
-
     if (!username.trim()) {
       setShowWarning(true);
       return;
@@ -50,12 +64,12 @@ const GithubConnect = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a23] text-white flex flex-col items-center justify-center px-4">
+    <div className={`min-h-screen ${bgClass} ${textClass} flex flex-col items-center justify-center px-4 transition-colors duration-300`}>
       {/* Go to Dashboard Button */}
       <div className="absolute top-24 right-6">
         <button
           onClick={() => navigate("/dashboard")}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg"
+          className={`${btnBg} font-semibold py-2 px-6 rounded-lg transition-colors duration-300`}
         >
           Go to Dashboard
         </button>
@@ -70,7 +84,7 @@ const GithubConnect = () => {
         <input
           type="text"
           placeholder="Enter GitHub Username"
-          className="w-full p-4 rounded-xl bg-[#1E1B3A] text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition mb-6"
+          className={`w-full p-4 rounded-xl ${inputBg} focus:outline-none ${inputFocus} transition mb-6`}
           value={username}
           onChange={(e) => setUsername(e.target.value)}
         />
@@ -82,8 +96,7 @@ const GithubConnect = () => {
         )}
         <button
           onClick={handleScrape}
-
-          className="bg-blue-600 hover:bg-blue-700 w-full py-4 rounded-2xl text-white font-semibold flex items-center justify-center gap-3 transition duration-300 ease-in-out shadow-[0_0_10px_rgba(99,102,241,0.4)]transform hover:scale-105 disabled:opacity-50"
+          className={`${btnBg} w-full py-4 rounded-2xl font-semibold flex items-center justify-center gap-3 transition duration-300 ease-in-out ${btnShadow} transform hover:scale-105 disabled:opacity-50`}
         >
           <FaGithub size={20} /> Scrape Preview
         </button>
@@ -99,7 +112,7 @@ const GithubConnect = () => {
       <Dialog open={isOpen} onClose={() => setIsOpen(false)} className="relative z-50 ">
         <div className="fixed inset-0 bg-black/60" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto">
-          <Dialog.Panel className="bg-[#1E1B3A] p-6 rounded-xl shadow-xl mt-16 text-white w-full max-w-2xl h-full max-h-[80vh] overflow-y-auto">
+          <Dialog.Panel className={`${modalBg} p-6 rounded-xl shadow-xl mt-16 w-full max-w-2xl h-full max-h-[80vh] overflow-y-auto`}>
             <Dialog.Title className="text-2xl font-bold mb-4">
               GitHub Preview
             </Dialog.Title>
@@ -114,17 +127,17 @@ const GithubConnect = () => {
                   />
                   <div>
                     <h3 className="text-xl font-semibold">@{data.username}</h3>
-                    <p className="text-gray-300">{data.bio}</p>
-                    <p className="text-sm text-gray-400">UID: {data.uid}</p>
+                    <p className={darkMode ? "text-gray-300" : "text-gray-700"}>{data.bio}</p>
+                    <p className={darkMode ? "text-sm text-gray-400" : "text-sm text-gray-500"}>UID: {data.uid}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-[#2a2752] p-4 rounded-lg">
+                  <div className={`${modalCard} p-4 rounded-lg`}>
                     <p className="font-bold">Repositories:</p>
                     <p>{data.repos}</p>
                   </div>
-                  <div className="bg-[#2a2752] p-4 rounded-lg">
+                  <div className={`${modalCard} p-4 rounded-lg`}>
                     <p className="font-bold">Projects:</p>
                     <ul className="list-disc ml-5">
                       {data.projects.map((p, i) => (
@@ -132,37 +145,37 @@ const GithubConnect = () => {
                       ))}
                     </ul>
                   </div>
-                  <div className="bg-[#2a2752] p-4 rounded-lg">
+                  <div className={`${modalCard} p-4 rounded-lg`}>
                     <p className="font-bold">Stars:</p>
                     <p>{data.stars}</p>
                   </div>
-                  <div className="bg-[#2a2752] p-4 rounded-lg">
+                  <div className={`${modalCard} p-4 rounded-lg`}>
                     <p className="font-bold">Followers:</p>
                     <p>{data.followers}</p>
                   </div>
-                  <div className="bg-[#2a2752] p-4 rounded-lg">
+                  <div className={`${modalCard} p-4 rounded-lg`}>
                     <p className="font-bold">Total Commits:</p>
                     <p>{data.commits}</p>
                   </div>
-                  <div className="bg-[#2a2752] p-4 rounded-lg">
+                  <div className={`${modalCard} p-4 rounded-lg`}>
                     <p className="font-bold">Longest Streak:</p>
                     <p>{data.streak}</p>
                   </div>
-                  <div className="bg-[#2a2752] p-4 rounded-lg col-span-2">
+                  <div className={`${modalCard} p-4 rounded-lg col-span-2`}>
                     <p className="font-bold mb-1">Top Languages:</p>
                     <div className="flex flex-wrap gap-2">
                       {data.topLanguages.map((lang, idx) => (
-                        <span key={idx} className="bg-[#3a3673] px-3 py-1 rounded-full text-sm">
+                        <span key={idx} className={`${modalTag} px-3 py-1 rounded-full text-sm`}>
                           {lang}
                         </span>
                       ))}
                     </div>
                   </div>
-                  <div className="bg-[#2a2752] p-4 rounded-lg col-span-2">
+                  <div className={`${modalCard} p-4 rounded-lg col-span-2`}>
                     <p className="font-bold mb-1">Tech Stack:</p>
                     <div className="flex flex-wrap gap-2">
                       {data.techStack.map((tech, idx) => (
-                        <span key={idx} className="bg-[#3a3673] px-3 py-1 rounded-full text-sm">
+                        <span key={idx} className={`${modalTag} px-3 py-1 rounded-full text-sm`}>
                           {tech}
                         </span>
                       ))}
@@ -174,7 +187,7 @@ const GithubConnect = () => {
 
             <button
               onClick={() => setIsOpen(false)}
-              className="mt-6 bg-blue-600 hover:bg-blue-700  w-full py-3 rounded-xl text-white font-semibold transition-transform transform hover:scale-105"
+              className={`${btnBg} mt-6 w-full py-3 rounded-xl font-semibold transition-transform transform hover:scale-105`}
             >
               Close
             </button>
