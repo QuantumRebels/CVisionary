@@ -319,23 +319,4 @@ We welcome contributions to improve the Scoring Service! Here's how you can help
 3. Update documentation if needed
 4. Commit your changes with a descriptive message
 5. Push to your fork and open a pull request
-
-### Code Style
-
-- Follow [PEP 8](https://www.python.org/dev/peps/pep-0008/) for Python code
-- Use type hints throughout the codebase
-- Keep functions small and focused
-- Write docstrings for all public functions and classes
-- Include tests for new features and bug fixes
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [Sentence Transformers](https://www.sbert.net/) for the semantic matching model
-- [Google Gemini](https://ai.google.dev/) for the AI-powered suggestions
-- [FastAPI](https://fastapi.tiangolo.com/) for the web framework
-- All contributors who helped improve this project
 ```
