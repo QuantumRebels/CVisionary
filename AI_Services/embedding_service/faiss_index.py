@@ -3,7 +3,7 @@ import numpy as np
 from typing import Dict, Tuple, List, Optional
 import sqlite3
 
-from db import get_user_chunks_by_namespace
+from .db import get_user_chunks_by_namespace
 
 # Global dictionary to store FAISS indices per user and namespace
 # Structure: user_id -> namespace -> (faiss_index, id_to_chunk_id_map)

@@ -1,4 +1,9 @@
 # app.py
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 """
 CVisionary Retrieval Service - FastAPI Application
@@ -28,13 +33,13 @@ from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from schemas import (
+from .schemas import (
     FullRetrieveRequest,
     SectionRetrieveRequest,
     RetrieveResponse,
     HealthResponse,
 )
-from utils import embed_text, retrieve_profile_chunks, retrieve_section_chunks
+from .utils import embed_text, retrieve_profile_chunks, retrieve_section_chunks
 
 # Configure logging
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()

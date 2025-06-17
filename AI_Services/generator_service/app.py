@@ -13,19 +13,19 @@ import httpx
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from schemas import (
+from .schemas import (
     FullGenerateRequest,
     SectionGenerateRequest,
     GenerateResponse,
     HealthResponse,
 )
-from utils import (
+from .utils import (
     retrieve_full_context,
     retrieve_section_context,
     format_context_for_prompt,
 )
-from prompt_templates import FULL_RESUME_TEMPLATE, SECTION_REWRITE_TEMPLATE
-from llm_client import invoke_gemini, LLMError
+from .prompt_templates import FULL_RESUME_TEMPLATE, SECTION_REWRITE_TEMPLATE
+from .llm_client import invoke_gemini, LLMError
 
 # Configure logging
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()

@@ -7,10 +7,10 @@ import redis
 from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
-from schemas import ChatRequest, ChatResponse, HealthResponse
-from agent import create_agent_executor
-from tools import ToolBox
-from memory import get_session_context, initialize_session_context
+from .schemas import ChatRequest, ChatResponse, HealthResponse
+from .agent import create_agent_executor
+from .tools import ToolBox
+from .memory import get_session_context, initialize_session_context
 
 toolbox: ToolBox = None
 

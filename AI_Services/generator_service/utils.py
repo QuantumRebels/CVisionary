@@ -7,7 +7,7 @@ import logging
 import os
 from typing import List
 import httpx
-from schemas import ChunkItem, RetrieveResponse
+from .schemas import ChunkItem, RetrieveResponse
 
 logger = logging.getLogger(__name__)
 

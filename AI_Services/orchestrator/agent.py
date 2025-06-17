@@ -8,8 +8,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.memory import ConversationBufferWindowMemory
 
-from tools import ToolBox
-from memory import get_session_history
+from .tools import ToolBox
+from .memory import get_session_history
 
 SYSTEM_PROMPT = """You are an expert resume-building assistant. Your goal is to help a user create or refine a resume for a specific job by intelligently using the tools at your disposal.
 

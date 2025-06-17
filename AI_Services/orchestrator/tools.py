@@ -7,8 +7,8 @@ import httpx
 from langchain.tools import tool
 from pydantic import ValidationError
 
-from memory import get_session_context, update_session_context
-from schemas import RetrieveResponse, GenerateResponse, ScoreResponse, SuggestionResponse
+from .memory import get_session_context, update_session_context
+from .schemas import RetrieveResponse, GenerateResponse, ScoreResponse, SuggestionResponse
 
 # FIX: Corrected the default ports for downstream services
 SCORING_SERVICE_URL = os.getenv("SCORING_SERVICE_URL", "http://scoring-service:8004")
