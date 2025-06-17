@@ -7,6 +7,9 @@ import redis
 from fastapi import FastAPI, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from .schemas import ChatRequest, ChatResponse, HealthResponse
 from .agent import create_agent_executor
 from .tools import ToolBox
