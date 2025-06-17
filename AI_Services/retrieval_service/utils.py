@@ -17,7 +17,7 @@ from typing import List, Dict, Any, Optional
 import httpx
 from fastapi import HTTPException
 
-from schemas import ChunkItem
+from .schemas import ChunkItem
 
 # Configure logger
 logger = logging.getLogger(__name__)

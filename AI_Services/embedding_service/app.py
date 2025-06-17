@@ -7,14 +7,14 @@ import uuid
 import numpy as np
 from typing import List
 
-from model import load_model, embed_text
-from faiss_index import (
+from .model import load_model, embed_text
+from .faiss_index import (
     build_index_from_db,
     search,
     rebuild_index_for_user_namespace,
     delete_user_index,
 )
-from db import (
+from .db import (
     init_db,
     store_chunk,
     get_all_chunks,
@@ -23,7 +23,7 @@ from db import (
     delete_user_chunks,
     delete_chunks_by_section_id,
 )
-from schemas import (
+from .schemas import (
     EmbedRequest,
     EmbedResponse,
     IndexProfileResponse,
@@ -34,7 +34,7 @@ from schemas import (
     IndexSectionResponse,
     DeleteSectionResponse,
 )
-from chunking import chunk_text, extract_text_fields
+from .chunking import chunk_text, extract_text_fields
 
 # This will be managed by the lifespan context and dependency injection
 http_client: httpx.AsyncClient
