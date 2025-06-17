@@ -1,4 +1,4 @@
-# orchestrator_service/schemas.py
+# orchestrator/schemas.py
 
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
@@ -8,35 +8,37 @@ from datetime import datetime
 
 class ChatRequest(BaseModel):
     """
-    Request model for the main chat endpoint.
+    Request model for the main /v1/chat endpoint.
     This is the primary input to the Orchestrator Agent.
     """
     session_id: str = Field(
         ...,
         description="A unique identifier for the user's session. This ID is used to maintain conversation history and state.",
-        min_length=1
+        min_length=1,
+        json_schema_extra={"example": "session_abc123"}
     )
     user_message: str = Field(
         ...,
         description="The user's message or instruction to the agent (e.g., 'Create a resume for this job', 'Rewrite my experience section').",
-        min_length=1
+        min_length=1,
+        json_schema_extra={"example": "Please generate a summary for my resume."}
     )
     
-    # These fields are only required for the *first* message in a new session
-    # to initialize the agent's context.
     user_id: Optional[str] = Field(
         None,
-        description="The user's ID. Required only for the first message in a new session."
+        description="The user's unique ID. This is required only for the first message in a new session.",
+        json_schema_extra={"example": "user_xyz789"}
     )
     job_description: Optional[str] = Field(
         None,
-        description="The full job description. Required only for the first message in a new session."
+        description="The full job description text. This is required only for the first message in a new session.",
+        json_schema_extra={"example": "We are looking for an experienced Python developer..."}
     )
 
 class ChatResponse(BaseModel):
     """
-    Response model for the chat endpoint.
-    This is the primary output from the Orchestrator Agent.
+    Response model for the /v1/chat endpoint.
+    This is the primary output from the Orchestrator Agent after it has completed a turn.
     """
     agent_response: str = Field(
         ...,
@@ -48,24 +50,23 @@ class ChatResponse(BaseModel):
     )
     resume_state: Optional[Dict[str, Any]] = Field(
         None,
-        description="The current state of the resume being built, returned after each turn for the client to display."
+        description="The current, complete state of the resume being built, returned after each turn."
     )
 
 class HealthResponse(BaseModel):
     """
-    Response model for the health check endpoint.
+    Response model for the /health endpoint.
     """
     status: str = Field(..., description="Overall health status of the service.")
     service: str = Field(..., description="The name of the service.")
-    redis_connected: bool = Field(..., description="Indicates if the connection to Redis is successful.")
+    redis_connected: bool = Field(..., description="Indicates if the connection to the Redis memory store is successful.")
 
 
 # --- Internal Schemas (for validating responses from other services) ---
 
 class ChunkItem(BaseModel):
     """
-    Internal model to validate a chunk item received from the Retrieval Service.
-    Must match the schema in the Retrieval Service.
+    Internal model to validate a single context chunk received from the Retrieval Service.
     """
     chunk_id: str
     user_id: str
@@ -91,3 +92,16 @@ class GenerateResponse(BaseModel):
     raw_prompt: str
     retrieval_mode: str
     section_id: Optional[str] = None
+
+class ScoreResponse(BaseModel):
+    """
+    Internal model to validate the response from the Scoring Service's /score endpoint.
+    """
+    match_score: float
+    missing_keywords: List[str]
+
+class SuggestionResponse(BaseModel):
+    """
+    Internal model to validate the response from the Scoring Service's /suggest endpoint.
+    """
+    suggestions: List[str]
