@@ -65,24 +65,24 @@ graph TD
     Title["<strong>Scoring Service Flow</strong>"]
     style Title fill:#222,stroke:#333,stroke-width:2px,color:#fff
 
+    Client["Client"]
+    Title --> Client
+
     subgraph "Scoring Flow"
         direction LR
-        Client1["Client"] -- "1. POST /score (job_desc, resume_text)" --> ScoreEndpoint["/score Endpoint"]
-        ScoreEndpoint -- "2. Compute semantic similarity" --> ScoringModel["Specialized Model"]
-        ScoreEndpoint -- "3. Extract & match keywords" --> KeywordLogic["Keyword Analysis"]
-        ScoreEndpoint -- "4. Return score & gaps" --> Client1
+        Client -- "POST /score (job_desc, resume_text)" --> ScoreEndpoint["/score Endpoint"]
+        ScoreEndpoint -- "(1) Computes semantic score" --> ScoringModel["Specialized Model"]
+        ScoreEndpoint -- "(2) Extracts & identifies missing keywords" --> KeywordLogic["Keyword Analysis"]
+        ScoreEndpoint -- "(3) Returns ScoreResponse (score, missing_keywords)" --> Client
     end
 
     subgraph "Suggestion Flow"
         direction LR
-        Client2["Client"] -- "1. POST /suggest (missing_keywords)" --> SuggestEndpoint["/suggest Endpoint"]
-        SuggestEndpoint -- "2. Generate improvement suggestions" --> GeminiAPI["Gemini AI"]
-        GeminiAPI -- "3. Return AI-generated advice" --> SuggestEndpoint
-        SuggestEndpoint -- "4. Return suggestions" --> Client2
+        Client -- "POST /suggest (missing_keywords)" --> SuggestEndpoint["/suggest Endpoint"]
+        SuggestEndpoint -- "(1) Builds prompt & calls LLM" --> GeminiAPI["Google Gemini API"]
+        GeminiAPI -- "(2) Returns AI-generated advice" --> SuggestEndpoint
+        SuggestEndpoint -- "(3) Returns SuggestionResponse" --> Client
     end
-    
-    Title --> Client1
-    Title --> Client2
 ```
 
 ## 🚀 Getting Started
@@ -319,23 +319,4 @@ We welcome contributions to improve the Scoring Service! Here's how you can help
 3. Update documentation if needed
 4. Commit your changes with a descriptive message
 5. Push to your fork and open a pull request
-
-### Code Style
-
-- Follow [PEP 8](https://www.python.org/dev/peps/pep-0008/) for Python code
-- Use type hints throughout the codebase
-- Keep functions small and focused
-- Write docstrings for all public functions and classes
-- Include tests for new features and bug fixes
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [Sentence Transformers](https://www.sbert.net/) for the semantic matching model
-- [Google Gemini](https://ai.google.dev/) for the AI-powered suggestions
-- [FastAPI](https://fastapi.tiangolo.com/) for the web framework
-- All contributors who helped improve this project
 ```
