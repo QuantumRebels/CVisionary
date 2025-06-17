@@ -40,6 +40,8 @@ from .schemas import (
     HealthResponse,
 )
 from .utils import embed_text, retrieve_profile_chunks, retrieve_section_chunks
+from dotenv import load_dotenv
+load_dotenv()
 
 # Configure logging
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()

@@ -26,6 +26,8 @@ from .utils import (
 )
 from .prompt_templates import FULL_RESUME_TEMPLATE, SECTION_REWRITE_TEMPLATE
 from .llm_client import invoke_gemini, LLMError
+from dotenv import load_dotenv
+load_dotenv()
 
 # Configure logging
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()

@@ -9,6 +9,8 @@ from .model_inference import ModelInference
 from .feature_extractor import extract_required_keywords, identify_missing_keywords
 from .suggestion_client import generate_suggestions
 from .schemas import ScoreRequest, ScoreResponse, SuggestionRequest, SuggestionResponse, HealthResponse
+from dotenv import load_dotenv
+load_dotenv()
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper())
 logger = logging.getLogger(__name__)

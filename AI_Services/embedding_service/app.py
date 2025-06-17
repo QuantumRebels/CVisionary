@@ -6,6 +6,8 @@ import httpx
 import uuid
 import numpy as np
 from typing import List
+from dotenv import load_dotenv
+load_dotenv()
 
 from .model import load_model, embed_text
 from .faiss_index import (
