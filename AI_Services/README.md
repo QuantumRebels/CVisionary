@@ -47,30 +47,64 @@ CVisionary's architecture is built around a microservices pattern, ensuring scal
 
 ```mermaid
 graph TD
-    subgraph "User Interaction"
-        UserClient["👤 User (via Frontend)"]
+    %% Theme provided by the user
+    %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ffffff', 'primaryTextColor': '#1a1a1a', 'primaryBorderColor': '#7c0000', 'lineColor': '#1a1a1a', 'secondaryColor': '#f5f5f5', 'tertiaryColor': '#f5f5f5'}}}%%
+
+    %% Define logical groups for components
+    subgraph "👥 User"
+        UserClient["fa:fa-user User Client"]
     end
 
-    subgraph "AI Services Ecosystem"
-        UserClient -- "1. POST /v1/chat" --> Orchestrator["🧠 Orchestrator Service (8080)"]
-        
-        Orchestrator -- "2. Calls Tools" --> Generator["✍️ Generator Service (8000)"]
-        Orchestrator -- "3. Calls Tools" --> Retrieval["🔍 Retrieval Service (8002)"]
-        Orchestrator -- "4. Calls Tools" --> Scoring["📊 Scoring Service (8004)"]
-        
-        Generator --> Retrieval
-        Retrieval -- "5. Needs Embeddings" --> Embedding["🔮 Embedding Service (8001)"]
-        
-        Orchestrator -- "Manages State" --> Redis[(💾 Redis)]
-        Scoring -- "Calls LLM" --> GeminiAPI((🚀 Google Gemini API))
-        Generator -- "Calls LLM" --> GeminiAPI
+    subgraph "🤖 AI Services Backend"
+        direction LR
+        Orchestrator["fa:fa-cogs Orchestrator"]
+        Generator["fa:fa-magic Generator"]
+        Retrieval["fa:fa-search Retrieval"]
+        Embedding["fa:fa-cube Embedding"]
+        Scoring["fa:fa-chart-line Scoring"]
     end
 
-    style Orchestrator fill:#D6EAF8,stroke:#3498DB
-    style Generator fill:#D5F5E3,stroke:#2ECC71
-    style Retrieval fill:#D1F2EB,stroke:#1ABC9C
-    style Scoring fill:#FEF9E7,stroke:#F1C40F
-    style Embedding fill:#FDEDEC,stroke:#E74C3C
+    subgraph "☁️ External Dependencies"
+        direction LR
+        Redis[("fa:fa-database Redis")]
+        GeminiAPI[("fa:fa-robot Google Gemini API")]
+    end
+
+    %% --- Define The Primary Data Flow (e.g., "Rewrite my experience section") ---
+
+    %% 1. The user's request is the only entry point to the system.
+    UserClient -- "(1) POST /v1/chat" --> Orchestrator
+
+    %% 2. The Orchestrator agent decides to generate content.
+    Orchestrator -- "(2) Agent calls generate_tool" --> Generator
+
+    %% 3. The Generator begins its dependency chain to gather context.
+    Generator -- "(3) Needs context for prompt" --> Retrieval
+    Retrieval -- "(4) Needs vectors/chunks" --> Embedding
+
+    %% 4. The Generator, now with context, calls the LLM.
+    Generator -- "(5) Generates text with context" --> GeminiAPI
+
+    %% 5. The Orchestrator saves the final state.
+    Orchestrator -- "(6) Saves new resume state" --> Redis
+
+    %% 6. The Orchestrator returns the final response to the user.
+    Orchestrator -- "(7) Returns final ChatResponse" --> UserClient
+    
+    %% --- Show other possible interactions without numbering them to avoid confusion ---
+    Orchestrator -.-> |Can call| Scoring
+    Scoring -.-> |For suggestions| GeminiAPI
+
+    %% --- Apply Styling ---
+    classDef user fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1;
+    classDef service fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20;
+    classDef external fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#4a148c;
+    classDef storage fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:#006064;
+
+    class UserClient user;
+    class Orchestrator,Generator,Retrieval,Scoring,Embedding service;
+    class GeminiAPI external;
+    class Redis storage;
 ```
 
 ### 🛠️ Services Breakdown
