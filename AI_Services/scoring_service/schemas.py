@@ -1,5 +1,3 @@
-# schemas.py
-
 from pydantic import BaseModel, Field
 from typing import List
 
@@ -16,7 +14,8 @@ class ScoreResponse(BaseModel):
 # --- /suggest endpoint schemas ---
 
 class SuggestionRequest(BaseModel):
-    missing_keywords: List[str] = Field(..., description="A list of keywords to generate suggestions for.", min_items=1)
+    # FIX: Use min_length instead of the deprecated min_items
+    missing_keywords: List[str] = Field(..., description="A list of keywords to generate suggestions for.", min_length=1)
 
 class SuggestionResponse(BaseModel):
     suggestions: List[str] = Field(..., description="A list of actionable suggestions for improving the resume based on the missing keywords.")

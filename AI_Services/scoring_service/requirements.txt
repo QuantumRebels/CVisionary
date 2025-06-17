@@ -5,3 +5,8 @@ pydantic
 sentence-transformers
 torch
 scikit-learn
+
+pytest
+pytest-asyncio
+pytest-cov
+pytest-mock
