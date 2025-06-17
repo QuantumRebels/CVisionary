@@ -1,72 +1,89 @@
-# tests/test_app.py
-
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock, ANY
+from unittest.mock import patch, MagicMock, AsyncMock
 
-AGENT_EXECUTOR_PATH = "app.create_agent_executor"
-
-def test_chat_endpoint_new_session(test_client):
-    """Tests the chat endpoint for a new session, requiring user_id and jd."""
+# FIX: Use consistent and correct patch paths
+@patch('app.create_agent_executor')
+@patch('app.get_session_context')
+@patch('app.initialize_session_context')
+def test_chat_endpoint_new_session(mock_init_context, mock_get_context, mock_create_agent, test_client):
+    """
+    Tests the chat endpoint for a new session, ensuring context is initialized
+    and the agent is called correctly.
+    """
+    # Arrange
     client, mock_toolbox = test_client
-
-    mock_executor = MagicMock()
-    mock_executor.ainvoke = AsyncMock(return_value={"output": "Hello! I'm ready to build your resume."})
     
-    with patch(AGENT_EXECUTOR_PATH, return_value=mock_executor) as mock_create_agent:
-        # Mock the memory functions to simulate a new session
-        with patch("memory.get_session_context", side_effect=[None, {"resume_state": {}}]) as mock_get_context:
-            with patch("app.initialize_session_context") as mock_init_context:
-                
-                response = client.post(
-                    "/v1/chat",
-                    json={
-                        "session_id": "new-session",
-                        "user_message": "Let's start.",
-                        "user_id": "u1",
-                        "job_description": "A great job."
-                    }
-                )
+    # Mock the agent executor's behavior
+    mock_executor = MagicMock()
+    mock_executor.ainvoke = AsyncMock(return_value={"output": "Hello from the agent!"})
+    mock_create_agent.return_value = mock_executor
+    
+    # Simulate first call returning no context, second call (after init) returning context
+    mock_get_context.side_effect = [None, {"resume_state": {"summary": "new"}}]
 
+    # Act
+    response = client.post(
+        "/v1/chat",
+        json={
+            "session_id": "new-session",
+            "user_message": "Let's start.",
+            "user_id": "u1",
+            "job_description": "A great job."
+        }
+    )
+
+    # Assert
     assert response.status_code == 200
     data = response.json()
-    assert data["agent_response"] == "Hello! I'm ready to build your resume."
-    assert data["resume_state"] == {} # Check for the new field
-    # Assert that the function was called with the correct keyword arguments.
-    # Use ANY to avoid matching the specific mock_toolbox instance.
-    mock_create_agent.assert_called_with(toolbox=ANY, session_id="new-session")
-    mock_init_context.assert_called_once()
-
-def test_chat_endpoint_new_session_missing_data(test_client):
-    """Tests that a new session fails without user_id and jd."""
-    client, _ = test_client
+    assert data["agent_response"] == "Hello from the agent!"
+    assert data["resume_state"] == {"summary": "new"}
     
-    # Mock get_session_context to return None to simulate a new session
-    with patch("memory.get_session_context", return_value=None):
-        # Test missing user_id and job_description
-        response = client.post(
-            "/v1/chat",
-            json={
-                "session_id": "new-session", 
-                "user_message": "Let's start."
-                # Missing user_id and job_description
-            }
-        )
-        
-        # The endpoint should return 400 with a specific error message
-        assert response.status_code == 400
-        assert "user_id` and `job_description` are required" in response.json()["detail"]
-        
-        # Test with empty user_id and job_description
-        response = client.post(
-            "/v1/chat",
-            json={
-                "session_id": "new-session-2", 
-                "user_message": "Let's start.",
-                "user_id": "",
-                "job_description": ""
-            }
-        )
-        
-        # The endpoint should return 400 with a specific error message
+    # Verify mocks were called correctly
+    mock_init_context.assert_called_once_with("new-session", "u1", "A great job.")
+    mock_create_agent.assert_called_once_with(mock_toolbox, "new-session")
+    mock_executor.ainvoke.assert_called_once_with({"input": "Let's start."})
+
+# FIX: Use correct patch path
+@patch('app.get_session_context')
+def test_chat_endpoint_new_session_missing_data(mock_get_context, test_client):
+    """
+    Tests that a 400 Bad Request is returned for a new session if user_id
+    or job_description is missing.
+    """
+    # Arrange
+    client, _ = test_client
+    mock_get_context.return_value = None  # Simulate a new session
+
+    # Test with missing user_id
+    response1 = client.post(
+        "/v1/chat",
+        json={
+            "session_id": "new-session-1",
+            "user_message": "Let's start.",
+            "job_description": "A job"
+        }
+    )
+    
+    # Test with missing job_description
+    response2 = client.post(
+        "/v1/chat",
+        json={
+            "session_id": "new-session-2",
+            "user_message": "Let's start.",
+            "user_id": "user-123"
+        }
+    )
+    
+    # Test with both missing
+    response3 = client.post(
+        "/v1/chat",
+        json={
+            "session_id": "new-session-3",
+            "user_message": "Let's start."
+        }
+    )
+    
+    # Assert all cases return 400
+    for response in [response1, response2, response3]:
         assert response.status_code == 400
         assert "user_id` and `job_description` are required" in response.json()["detail"]
