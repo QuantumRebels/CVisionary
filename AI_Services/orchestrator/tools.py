@@ -12,7 +12,7 @@ from .schemas import RetrieveResponse, GenerateResponse, ScoreResponse, Suggesti
 
 SCORING_SERVICE_URL = os.getenv("SCORING_SERVICE_URL", "http://localhost:8004")
 RETRIEVAL_SERVICE_URL = os.getenv("RETRIEVAL_SERVICE_URL", "http://localhost:8002")
-GENERATION_SERVICE_URL = os.getenv("GENERATION_SERVICE_URL", "http://localhost:8000")
+GENERATION_SERVICE_URL = os.getenv("GENERATION_SERVICE_URL", "http://localhost:8003")
 
 def format_context_for_prompt(chunks: List) -> str:
     """Formats retrieved chunks into a human-readable context string."""
