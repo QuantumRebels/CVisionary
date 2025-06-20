@@ -4,8 +4,7 @@ import { motion } from "framer-motion";
 import { getAuth, signOut } from "firebase/auth";
 
 function Navbar({ isLoggedIn, darkMode, setDarkMode, }) {
-
-
+  
   const handlelogout = async () => {
     try {
       const auth = getAuth();
@@ -54,6 +53,7 @@ function Navbar({ isLoggedIn, darkMode, setDarkMode, }) {
             >
               Reviews
             </a>
+           
             <a href="/login">
               <button
                 className={darkMode
