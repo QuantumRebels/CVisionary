@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Send, Paperclip } from "lucide-react";
 import axios from "axios";
 
-const ChatInterface = ({ onPromptSubmit }) => {
+const ChatInterface = ({ onPromptSubmit, initialPrompt, darkMode }) => {
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -15,7 +15,7 @@ const ChatInterface = ({ onPromptSubmit }) => {
   const [placeholder, setPlaceholder] = useState("Type your prompt...");
   const [thinking, setThinking] = useState(false);
   const messagesEndRef = useRef(null);
-  const fileInputRef = useRef(null); // ref for file input
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -32,7 +32,7 @@ const ChatInterface = ({ onPromptSubmit }) => {
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    onPromptSubmit(input);
+    if (onPromptSubmit) onPromptSubmit(input);
     setInput("");
     setThinking(true);
 
@@ -65,7 +65,6 @@ const ChatInterface = ({ onPromptSubmit }) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Display file name in chat
     setMessages((prev) => [
       ...prev,
       {
@@ -74,24 +73,33 @@ const ChatInterface = ({ onPromptSubmit }) => {
         isUser: true,
       },
     ]);
-
-    // Uncomment to upload to backend
-    // const formData = new FormData();
-    // formData.append("file", file);
-    // try {
-    //   const res = await axios.post("/api/upload", formData);
-    //   console.log("File uploaded:", res.data);
-    // } catch (err) {
-    //   console.error("File upload error", err);
-    // }
-
-    e.target.value = null; // Clear for next upload
+    e.target.value = null;
   };
 
+  const bgClass = darkMode ? "bg-[#0d0b22]" : "bg-white";
+  const textClass = darkMode ? "text-white" : "text-gray-900";
+  const borderClass = darkMode ? "border-gray-700" : "border-blue-200";
+  const inputBg = darkMode
+    ? "bg-[#0d0b22] border-gray-700"
+    : "bg-blue-100 border-blue-200";
+  const inputText = darkMode ? "text-white" : "text-gray-900";
+  const placeholderText = darkMode ? "placeholder-gray-500" : "placeholder-gray-400";
+  const userMsgBg = darkMode
+    ? "bg-blue-600 text-white"
+    : "bg-blue-500 text-white";
+  const aiMsgBg = darkMode
+    ? "bg-gray-800 text-gray-200"
+    : "bg-blue-100 text-gray-900";
+  const sendBtnBg = darkMode
+    ? "bg-blue-600 hover:bg-blue-700"
+    : "bg-blue-500 hover:bg-blue-600";
+  const disabledBtnBg = darkMode
+    ? "bg-gray-600"
+    : "bg-gray-300";
+
   return (
-    <div className="flex flex-col h-full bg-[#0d0b22]">
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#0d0b22] mt-16">
+    <div className={`flex flex-col h-full ${bgClass} transition-colors duration-300`}>
+      <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${bgClass} mt-16`}>
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -99,9 +107,7 @@ const ChatInterface = ({ onPromptSubmit }) => {
           >
             <div
               className={`max-w-sm px-4 py-2 rounded-2xl text-sm ${
-                msg.isUser
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-800 text-gray-200"
+                msg.isUser ? userMsgBg : aiMsgBg
               }`}
             >
               {msg.content}
@@ -115,22 +121,19 @@ const ChatInterface = ({ onPromptSubmit }) => {
 
         <div ref={messagesEndRef} />
       </div>
-
-      {/* Input Field */}
       <form
         onSubmit={handleSubmit}
-        className="border-t border-gray-800 bg-[#0d0b22] p-4"
+        className={`border-t ${borderClass} ${bgClass} p-4`}
       >
-        <div className="flex items-center gap-2 bg-[#0d0b22] px-4 py-3 rounded-xl border border-gray-700 focus-within:border-blue-500">
+        <div className={`flex items-center gap-2 ${bgClass} px-4 py-3 rounded-xl border ${borderClass} focus-within:border-blue-500`}>
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={placeholder}
-            className="flex-1 bg-transparent outline-none text-white placeholder-gray-500"
+            className={`flex-1 bg-transparent outline-none ${inputText} ${placeholderText}`}
           />
 
-          {/* Hidden File Input */}
           <input
             type="file"
             ref={fileInputRef}
@@ -143,13 +146,13 @@ const ChatInterface = ({ onPromptSubmit }) => {
             className="p-1"
             title="Upload file"
           >
-            <Paperclip className="w-5 h-5 text-gray-500" />
+            <Paperclip className={`w-5 h-5 ${darkMode ? "text-gray-500" : "text-blue-500"}`} />
           </button>
 
           <button
             type="submit"
             disabled={!input.trim()}
-            className="p-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600"
+            className={`p-2 rounded-lg ${sendBtnBg} disabled:${disabledBtnBg}`}
           >
             <Send className="w-4 h-4 text-white" />
           </button>
